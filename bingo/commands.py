@@ -73,13 +73,13 @@ def HelpString(auth, f, ar):
 
 			if isinstance(v, dict):
 				if "" in v: 
-					vd = v[""].__doc__
+					vd = v[""].__doc__.partition('\n')[0]
 				else:
 					vd = "???"
 			else:
 				if k == "":
 					continue
-				vd = v.__doc__
+				vd = v.__doc__.partition('\n')[0]
 
 			helpstr += f"\n- {k}: {vd}"
 	else:

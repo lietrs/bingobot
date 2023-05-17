@@ -24,8 +24,31 @@ def _teamFile(server, team):
 def _fieldsFile(server):
 	return os.path.join(_serverDir(server), "BingoFields.json")
 
+def _bingoFile(server):
+	return os.path.join(_serverDir(server), "status.json")
 
 
 def initServer(server):
 	os.makedirs(_serverDir(server), exist_ok=True)
 
+
+
+# General bingo status stored data
+
+def getBingoStatus(server):
+	if os.path.exists(_bingoFile(server)):
+		with open(_bingoFile(server), "r") as f:
+			d = json.load(f)
+
+		return d
+	else:
+		return {"started": False}
+
+def setBingoStatus(server, status):
+
+	with open(bingodata._teamFile(server), "w") as f:
+		json.dump(status, f)
+
+def isBingoStarted(server):
+	st = getBingoStatus(server)
+	return st["started"]

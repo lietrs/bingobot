@@ -309,3 +309,11 @@ async def setCaptain(ctx, teamSlug, player):
 	await player.add_roles(role)
 
 	await auditLog(ctx, f"Player `{player.name}` set as captain of team `{teamSlug}`")
+
+
+async def setOwner(ctx, user):
+	role = discord.utils.get(ctx.guild.roles, name=names.ownerRole)
+
+	await user.add_roles(role)
+
+	await auditLog(ctx, f"Player `{player.name}` set as captain of team `{teamSlug}`")
