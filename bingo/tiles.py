@@ -1,5 +1,6 @@
 
 import os
+import json
 from bingo import bingodata
 
 
@@ -7,40 +8,39 @@ gTILES = {}
 
 
 class Tile:
-	slug = ""
 	name = ""
 	description = ""
 	board_x = 0
 	board_y = 0
 
+	def __init__(self, d = None):
+		if d:
+			self.name = d["name"]
+			self.description = d["description"]
+			self.board_x = d["board"]["x"]
+			self.board_y = d["board"]["y"]
+
 	def toDict(self):
 		return {"type": "basic", "name": self.name, "description": self.description, "board": {"x": self.board_x, "y": self.board_y}}
 
-	def fromDict(self, d):
-		self.slug = d["slug"]
-		self.name = d["name"]
-		self.description = d["description"]
-		self.board_x = d["board"]["x"]
-		self.board_y = d["board"]["y"]
-
 	def basicString(self):
-		return f"[{self.slug}] {self.name} - {self.description}"
+		return f"{self.name} - {self.description}"
 
 
 class XPTile(Tile):
 	skill = ""
 	required = 0
 
+	def __init__(self, d):
+		super().__init__(d)
+		self.skill = d["skill"]
+		self.required = d["required"]
+
 	def toDict(self):
 		ret = super().toDict()
 		ret["skill"] = skill
 		ret["required"] = required
 		ret["type"] = "xp"
-
-	def fromDict(self, d):
-		super().fromDict(d)
-		self.skill = d["skill"]
-		self.required = d["required"]
 
 	def basicString(self):
 		return f"{super().basicString()} ({self.required} {self.skill} xp required)"
@@ -49,14 +49,14 @@ class XPTile(Tile):
 class CountTile(Tile):
 	required = 0
 
+	def __init__(self, d):
+		super().__init__(d)
+		self.required = d["required"]
+
 	def toDict(self):
 		ret = super().toDict()
 		ret["required"] = required
 		ret["type"] = "count"
-
-	def fromDict(self, d):
-		super().fromDict(d)
-		self.required = d["required"]
 
 	def basicString(self):
 		return f"{super().basicString()} ({self.required} required)"
@@ -65,14 +65,14 @@ class CountTile(Tile):
 class ItemsTile(Tile):
 	items = []
 
+	def __init__(self, d):
+		super().__init__(d)
+		self.items = d["items"]
+
 	def toDict(self):
 		ret = super().toDict()
 		ret["items"] = items
 		ret["type"] = "items"
-
-	def fromDict(self, d):
-		super().fromDict(d)
-		self.items = d["items"]
 
 	def basicString(self):
 		itemList = ", ".join(self.items)
@@ -87,25 +87,51 @@ def initFile(server):
 
 
 
-def reloadFile(server):
-	pass
+def loadFile(server):
+	with open(bingodata._fieldsFile(server), "r") as f:
+		d = json.load(f)
 
-def saveFile(server):
-	pass
+	ret = {}
 
+	for s, td in d.items():
+		match td["type"]:
+			case "basic":
+				ret[s] = Tile(td)
+			case "xp":
+				ret[s] = XPTile(td)
+			case "count":
+				ret[s] = CountTile(td)
+			case "items":
+				ret[s] = ItemsTile(td)
+
+	return ret
+
+def saveFile(server, tld):
+	d = {}
+	for s, tl in tld.items():
+		d[s] = tl.toDict()
+
+	with open(bingodata._fieldsFile(server), "w") as f:
+		json.dump(d, f)
 
 
 def editTile(server, tile):
-	gTILES[tile.slug] = tile
-	saveFile(server)
+	tiles = loadFile(server)
+	tiles[tile.slug] = tile
+	saveFile(server, tiles)
 
 def renameTile(server, oldSlug, newSlug):
-	t = gTILES[oldSlug]
-	del gTILES[oldSlug]
-	gTILES[newSlug] = t
+	tiles = loadFile(server)
+	t = tiles[oldSlug]
+	del tiles[oldSlug]
+	tiles[newSlug] = t
+	saveFile(server, tiles)
 
 def removeTile(server, tile):
-	del gTILES[tile]
+	tiles = loadFile(server)
+	del tiles[tile]
+	saveFile(server, tiles)
 
-def all():
-	return gTILES
+
+def all(server):
+	return loadFile(server)

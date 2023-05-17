@@ -5,11 +5,12 @@ import asyncio
 import logging
 
 import bingobot_admin
+from bingo import bingodata
 
 
 # Settings
 
-with open("Token.txt", 'r') as fp:
+with open("token.txt", 'r') as fp:
     gTOKEN = fp.readline()
 
 gPREFIX = "¬"
@@ -34,5 +35,6 @@ async def bingo(ctx: discord.ext.commands.Context, *args):
 
 
 logging.basicConfig(level=logging.ERROR)
+bingodata.initData("./")
 
 bot.run(gTOKEN)

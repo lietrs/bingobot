@@ -4,7 +4,7 @@ from discord.ext import commands
 import asyncio
 import logging
 
-from bingo import discordbingo, commands, tiles
+from bingo import discordbingo, commands, tiles, bingodata
 
 
 goodReaction = "\N{White Heavy Check Mark}"
@@ -39,7 +39,8 @@ async def bingo_init(ctx: discord.ext.commands.Context, auth, args):
 	async with ctx.typing():
 		await discordbingo.bingoInit(ctx, ctx.guild.me, ctx.author)
 
-		# TODO: Initialise data files
+		bingodata.initServer(ctx.guild)
+
 		# TODO: Initialise tiles data
 
 	await ctx.send("Bingo initialised, see audit channel for log.")
@@ -240,11 +241,11 @@ async def bingo_tiles(ctx: discord.ext.commands.Context, auth, args):
 async def bingo_tiles_list(ctx: discord.ext.commands.Context, auth, args):
 	""" List bingo tiles """
 
-	tls = tiles.all()
+	tls = tiles.all(ctx.guild)
 
 	retstr = f"{len(tls)} tile(s):"
 	for sl, t in tls.items():
-		retstr += f"\n{t.basicString()}"
+		retstr += f"\n[{sl}] {t.basicString()}"
 
 	await ctx.send(retstr)
 
@@ -255,8 +256,8 @@ async def bingo_tiles_add(ctx: discord.ext.commands.Context, auth, args):
 	if max(auth.keys()) < commands.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
 
-	# Usage: !bingo tiles add SLUG NAME DESCRIPTION X,Y
-	if len(args) < 4:
+	# Usage: !bingo tiles add SLUG NAME DESCRIPTION X Y
+	if len(args) < 5:
 		await ctx.send("Usage: !bingo tiles add SLUG NAME DESCRIPTION X Y")
 		return
 
@@ -273,25 +274,68 @@ async def bingo_tiles_add(ctx: discord.ext.commands.Context, auth, args):
 async def bingo_tiles_add_xp(ctx: discord.ext.commands.Context, auth, args):
 	""" Add bingo tiles """
 
-	await ctx.send("Add bingo tile")
+	if max(auth.keys()) < commands.PermLevel.Admin:
+		raise discordbingo.PermissionDenied()
+
+	# Usage: !bingo tiles add xp SKILL XP DESCRIPTION X Y
+	if len(args) < 5:
+		await ctx.send("Usage: !bingo tiles add xp SKILL XP DESCRIPTION X Y")
+		return
+
+	t = tiles.XPTile()
+	t.slug = args[0]
+	t.skill = args[0]
+	t.required = int(args[1])
+	t.description = args[2]
+	t.board_x = int(args[3])
+	t.board_y = int(args[4])
+
+	tiles.editTile(ctx.guild, t)
+
+	await ctx.message.add_reaction(goodReaction)
 
 
 async def bingo_tiles_add_multi(ctx: discord.ext.commands.Context, auth, args):
 	""" Add bingo tiles """
+	if max(auth.keys()) < commands.PermLevel.Admin:
+		raise discordbingo.PermissionDenied()
 
-	await ctx.send("Add bingo tile")
+	# Usage: !bingo tiles add SLUG NAME DESCRIPTION X Y
+	if len(args) < 6:
+		await ctx.send("Usage: !bingo tiles add SLUG NAME DESCRIPTION QTY X Y")
+		return
 
+	t = tiles.CountTile()
+	t.slug, t.name, t.description = args[0:3]
+	t.required = int(args[3])
+	t.board_x = int(args[4])
+	t.board_y = int(args[5])
+
+	tiles.editTile(ctx.guild, t)
+
+	await ctx.message.add_reaction(goodReaction)
 
 async def bingo_tiles_add_items(ctx: discord.ext.commands.Context, auth, args):
 	""" Add bingo tiles """
 
-	await ctx.send("Add bingo tile")
+	if max(auth.keys()) < commands.PermLevel.Admin:
+		raise discordbingo.PermissionDenied()
 
+	# Usage: !bingo tiles add SLUG NAME DESCRIPTION X Y item1 item2 etc
+	if len(args) < 6:
+		await ctx.send("Usage: !bingo tiles add SLUG NAME DESCRIPTION X Y")
+		return
 
-async def bingo_tiles_reload(ctx: discord.ext.commands.Context, auth, args):
-	""" Add bingo tiles """
+	t = tiles.ItemsTile()
+	t.slug, t.name, t.description = args[0:3]
+	t.board_x = int(args[3])
+	t.board_y = int(args[4])
+	t.items = args[5:]
 
-	await ctx.send("Add bingo tile")
+	tiles.editTile(ctx.guild, t)
+
+	await ctx.message.add_reaction(goodReaction)
+
 
 async def bingo_tiles_remove(ctx: discord.ext.commands.Context, auth, args):
 	""" Remove bingo tiles """
@@ -324,7 +368,7 @@ bingo_commands = {
     "tiles": (commands.PermLevel.Mod, {
         "": bingo_tiles,
         "list": bingo_tiles_list,
-        "reload": (commands.PermLevel.Admin, bingo_tiles_reload),
+        "about": bingo_tiles_about,
         "add": (commands.PermLevel.Admin, {
         	"basic": bingo_tiles_add,
         	"xp": bingo_tiles_add_xp,
