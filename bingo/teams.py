@@ -66,6 +66,15 @@ def saveTeamTiles(server, team, tld):
 		json.dump(d, f)
 
 
+def renameTeam(server, old, new):
+	tls = loadTeamTiles(server, old)
+	saveTeamTiles(server, new, tls)
+	try:
+		os.remove(bingodata._teamFile(server, team))
+	except:
+		pass
+
+
 
 def addEvidence(server, team, tile, evidence):
 	tm = loadTeamTiles(server, team)

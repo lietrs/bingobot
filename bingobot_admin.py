@@ -31,7 +31,9 @@ async def bingo_who(ctx: discord.ext.commands.Context, auth, args):
 
 
 async def bingo_init(ctx: discord.ext.commands.Context, auth, args):
-	"""Initialise a new bingo"""
+	"""Initialise a new bingo
+
+	Creates the basic channels and roles required for the bingo"""
 
 	if not ctx.author == ctx.guild.owner:
 		raise discordbingo.PermissionDenied()
@@ -48,7 +50,9 @@ async def bingo_init(ctx: discord.ext.commands.Context, auth, args):
 
 
 async def bingo_cleanup(ctx: discord.ext.commands.Context, auth, args):
-	"""Initialise a new bingo"""
+	"""Initialise a new bingo
+
+	Removes all the bingo specific channels, teams should be deleted first"""
 
 	if not ctx.author == ctx.guild.owner:
 		raise discordbingo.PermissionDenied()
@@ -60,19 +64,31 @@ async def bingo_cleanup(ctx: discord.ext.commands.Context, auth, args):
 
 
 async def bingo_start(ctx: discord.ext.commands.Context, auth, args):
-	"""Start the bingo!"""
+	"""Start the bingo!
+
+	This sets the status to started, which is used to make sure normal people can't see the tiles early"""
 	
 	if max(auth.keys()) < commands.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
+
+	status = bingodata.getBingoStatus(ctx.guild)
+	status["started"] = True
+	bingodata.setBingoStatus(ctx.guild, status)
 
 	await ctx.message.add_reaction(goodReaction)
 
 
 async def bingo_end(ctx: discord.ext.commands.Context, auth, args):
-	"""End the bingo :'("""
+	"""End the bingo :'(
+
+	Currently only sets the ended flag, doesn't stop any commands functioning"""
 	
 	if max(auth.keys()) < commands.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
+
+	status = bingodata.getBingoStatus(ctx.guild)
+	status["ended"] = True
+	bingodata.setBingoStatus(ctx.guild, status)
 
 	await ctx.message.add_reaction(goodReaction)
 
@@ -85,7 +101,9 @@ async def bingo_teams(ctx: discord.ext.commands.Context, auth, args):
 
 
 async def bingo_teams_list(ctx: discord.ext.commands.Context, auth, args):
-	""" Administer bingo teams """
+	""" List the bingo teams
+
+	Usage: !bingo teams list"""
 	
 	teams = discordbingo.listTeams(ctx.guild)
 
@@ -110,7 +128,12 @@ async def bingo_teams_list(ctx: discord.ext.commands.Context, auth, args):
 
 
 async def bingo_teams_add(ctx: discord.ext.commands.Context, auth, args):
-	"""Add a team"""
+	"""Add a team
+
+	Usage: !bingo teams add SLUG NAME
+
+	SLUG - the team name "slug". This is how the channels and files are named, no special characters please
+	NAME - The name they actually want, that can be anything"""
 
 	if max(auth.keys()) < commands.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
@@ -122,7 +145,13 @@ async def bingo_teams_add(ctx: discord.ext.commands.Context, auth, args):
 
 
 async def bingo_teams_rename(ctx: discord.ext.commands.Context, auth, args):
-	"""Rename a team"""
+	"""Rename a team
+
+	Usage: !bingo teams rename OLDSLUG NEWSLUG NEWNAME
+
+	OLDSLUG - the current team name (as at the start of their text channel)
+	NEWSLUG - What the new team name should be
+	NEWNAME - The new display name"""
 
 	if max(auth.keys()) < commands.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
@@ -133,12 +162,17 @@ async def bingo_teams_rename(ctx: discord.ext.commands.Context, auth, args):
 
 	async with ctx.typing():
 		await discordbingo.renameTeam(ctx, team, newslug, newname)
+		teams.renameTeam(team, newslug)
 
 	await ctx.message.add_reaction(goodReaction)
 
 
 async def bingo_teams_remove(ctx: discord.ext.commands.Context, auth, args):
-	"""Remove a team"""
+	"""Remove a team
+
+	Usage: !bingo teams remove TEAM
+
+	TEAM - the team name (as at the start of their text channel)"""
 
 	if max(auth.keys()) < commands.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
@@ -152,15 +186,24 @@ async def bingo_teams_remove(ctx: discord.ext.commands.Context, auth, args):
 
 async def bingo_players(ctx: discord.ext.commands.Context, auth, args):
 	"""Add/delete players from the bingo"""
+
 	await bingo_teams_list(ctx, auth, args)
 
 async def bingo_players_list(ctx: discord.ext.commands.Context, auth, args):
-	"""List all the participants of the bingo"""
+	"""List all the participants of the bingo
+
+	Usage: !bingo players list"""
+
 	await bingo_teams_list(ctx, auth, args)
 
 
 async def bingo_players_add(ctx: discord.ext.commands.Context, auth, args):
-	"""Add a player to the bingo"""
+	"""Add a player to the bingo
+
+	Usage: !bingo players add TEAM PLAYER
+
+	TEAM - the team name (as at the start of their text channel)
+	PLAYER - A player name. Can tag players, or use just a username, or username#1234"""
 
 	if max(auth.keys()) < commands.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
@@ -183,7 +226,11 @@ async def bingo_players_add(ctx: discord.ext.commands.Context, auth, args):
 
 
 async def bingo_players_remove(ctx: discord.ext.commands.Context, auth, args):
-	"""Removes a player from the bingo"""
+	"""Removes a player from the bingo
+
+	Usage: !bingo players remove PLAYER
+
+	PLAYER - A player name. Can tag players, or use just a username, or username#1234"""
 
 	if max(auth.keys()) < commands.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
@@ -205,7 +252,12 @@ async def bingo_players_remove(ctx: discord.ext.commands.Context, auth, args):
 
 
 async def bingo_teams_setcaptain(ctx: discord.ext.commands.Context, auth, args):
-	"""Add a player to the bingo"""
+	"""Set the team captain
+
+	Usage: !bingo teams setcaptain TEAM PLAYER
+
+	TEAM - the team name (as at the start of their text channel)
+	PLAYER - A player name. Can tag players, or use just a username, or username#1234"""
 
 	if max(auth.keys()) < commands.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
@@ -228,7 +280,11 @@ async def bingo_teams_setcaptain(ctx: discord.ext.commands.Context, auth, args):
 
 
 async def bingo_teams_progress(ctx: discord.ext.commands.Context, auth, args):
-	"""retrieve details on team progress"""
+	"""retrieve details on team progress
+
+	Usage: !bingo teams progress TEAM
+
+	TEAM - the team name (as at the start of their text channel)"""
 
 	if max(auth.keys()) < commands.PermLevel.Mod:
 		raise discordbingo.PermissionDenied()
@@ -264,7 +320,9 @@ async def bingo_tiles(ctx: discord.ext.commands.Context, auth, args):
 
 
 async def bingo_tiles_list(ctx: discord.ext.commands.Context, auth, args):
-	""" List bingo tiles """
+	""" List bingo tiles 
+
+	Usage: !bingo tiles list"""
 
 	tls = tiles.all(ctx.guild)
 
@@ -276,14 +334,16 @@ async def bingo_tiles_list(ctx: discord.ext.commands.Context, auth, args):
 
 
 async def bingo_tiles_add(ctx: discord.ext.commands.Context, auth, args):
-	""" Add bingo tiles """
+	""" Add bingo tiles - Basic tile
+
+	Usage: !bingo tiles add basic SLUG NAME DESCRIPTION X Y"""
 
 	if max(auth.keys()) < commands.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
 
 	# Usage: !bingo tiles add SLUG NAME DESCRIPTION X Y
 	if len(args) < 5:
-		await ctx.send("Usage: !bingo tiles add SLUG NAME DESCRIPTION X Y")
+		await ctx.send("Usage: !bingo tiles add basic SLUG NAME DESCRIPTION X Y")
 		return
 
 	t = tiles.Tile()
@@ -297,12 +357,13 @@ async def bingo_tiles_add(ctx: discord.ext.commands.Context, auth, args):
 
 
 async def bingo_tiles_add_xp(ctx: discord.ext.commands.Context, auth, args):
-	""" Add bingo tiles """
+	""" Add bingo tiles - XP tile
+
+	Usage: !bingo tiles add xp SKILL XPREQUIRED DESCRIPTION X Y"""
 
 	if max(auth.keys()) < commands.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
 
-	# Usage: !bingo tiles add xp SKILL XP DESCRIPTION X Y
 	if len(args) < 5:
 		await ctx.send("Usage: !bingo tiles add xp SKILL XP DESCRIPTION X Y")
 		return
@@ -322,13 +383,15 @@ async def bingo_tiles_add_xp(ctx: discord.ext.commands.Context, auth, args):
 
 
 async def bingo_tiles_add_multi(ctx: discord.ext.commands.Context, auth, args):
-	""" Add bingo tiles """
+	""" Add bingo tiles - Multiple counts required
+
+	Usage: !bingo tiles add multi SLUG NAME DESCRIPTION QTY X Y"""
 	if max(auth.keys()) < commands.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
 
 	# Usage: !bingo tiles add SLUG NAME DESCRIPTION X Y
 	if len(args) < 6:
-		await ctx.send("Usage: !bingo tiles add SLUG NAME DESCRIPTION QTY X Y")
+		await ctx.send("Usage: !bingo tiles add multi SLUG NAME DESCRIPTION QTY X Y")
 		return
 
 	t = tiles.CountTile()
@@ -342,14 +405,15 @@ async def bingo_tiles_add_multi(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.message.add_reaction(goodReaction)
 
 async def bingo_tiles_add_items(ctx: discord.ext.commands.Context, auth, args):
-	""" Add bingo tiles """
+	""" Add bingo tiles - Multiple Items Required
+
+	Usage: !bingo tiles add items SLUG NAME DESCRIPTION X Y ITEM1 ITEM2 ..."""
 
 	if max(auth.keys()) < commands.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
 
-	# Usage: !bingo tiles add items SLUG NAME DESCRIPTION X Y item1 item2 etc
 	if len(args) < 6:
-		await ctx.send("Usage: !bingo tiles add SLUG NAME DESCRIPTION X Y")
+		await ctx.send("Usage: !bingo tiles additems  SLUG NAME DESCRIPTION X Y")
 		return
 
 	t = tiles.ItemsTile()
@@ -366,7 +430,9 @@ async def bingo_tiles_add_items(ctx: discord.ext.commands.Context, auth, args):
 async def bingo_tiles_remove(ctx: discord.ext.commands.Context, auth, args):
 	""" Remove bingo tiles 
 
-	Usage: !bingo tiles remove TILE"""
+	Usage: !bingo tiles remove TILE
+
+	TILE - The name of the tile to get information on. For tile names use `!bingo tiles list`"""
 
 	tiles.removeTile(ctx.guild, args[0])
 
@@ -374,7 +440,10 @@ async def bingo_tiles_remove(ctx: discord.ext.commands.Context, auth, args):
 async def bingo_tiles_approve(ctx: discord.ext.commands.Context, auth, args):
 	""" Mark bingo tile status 
 
-	Usage: !bingo tiles approve TEAM TILE"""
+	Usage: !bingo tiles approve TEAM TILE
+
+	TEAM - the team name (as at the start of their text channel)
+	TILE - The name of the tile to get information on. For tile names use `!bingo tiles list`"""
 
 	if max(auth.keys()) < commands.PermLevel.Mod:
 		raise discordbingo.PermissionDenied()
@@ -396,7 +465,11 @@ async def bingo_tiles_approve(ctx: discord.ext.commands.Context, auth, args):
 async def bingo_tiles_setprogress(ctx: discord.ext.commands.Context, auth, args):
 	""" Set progress for a bingo tile 
 
-	Usage: !bingo tiles setprogress TEAM TILE PROGRESS"""
+	Usage: !bingo tiles setprogress TEAM TILE PROGRESS
+
+	TEAM - the team name (as at the start of their text channel)
+	TILE - The name of the tile to get information on. For tile names use `!bingo tiles list` 
+	PROGRESS - Depends on the type of the tile. For xp and multi/count tiles this is a number. For items it's the name of the item """
 
 	if max(auth.keys()) < commands.PermLevel.Mod:
 		raise discordbingo.PermissionDenied()
@@ -417,7 +490,11 @@ async def bingo_tiles_setprogress(ctx: discord.ext.commands.Context, auth, args)
 async def bingo_tiles_addprogress(ctx: discord.ext.commands.Context, auth, args):
 	""" Add progress to a bingo tile 
 
-	Usage: !bingo tiles addprogress TEAM TILE PROGRESS"""
+	Usage: !bingo tiles addprogress TEAM TILE PROGRESS
+
+	TEAM - the team name (as at the start of their text channel)
+	TILE - The name of the tile to get information on. For tile names use `!bingo tiles list` 
+	PROGRESS - Depends on the type of the tile. For xp and multi/count tiles this is a number. For items it's the name of the item """
 
 	if max(auth.keys()) < commands.PermLevel.Mod:
 		raise discordbingo.PermissionDenied()
@@ -438,7 +515,11 @@ async def bingo_tiles_addprogress(ctx: discord.ext.commands.Context, auth, args)
 
 
 async def bingo_tiles_about(ctx: discord.ext.commands.Context, auth, args):
-	""" Gives extra info about a bingo tile"""
+	""" Gives extra info about a bingo tile
+
+	Usage: !bingo tiles about TILE
+
+	TILE - The name of the tile to get information on. For tile names use `!bingo tiles list` """
 	
 	tile = args[0]
 	tld = tiles.all(ctx.guild)[tile]
@@ -447,7 +528,11 @@ async def bingo_tiles_about(ctx: discord.ext.commands.Context, auth, args):
 
 
 async def bingo_tiles_progress(ctx: discord.ext.commands.Context, auth, args):
-	""" Overall progress of all teams on a bingo tile """
+	""" Overall progress of all teams on a bingo tile
+
+	Usage: !bingo tiles progress TILE
+
+	TILE - The name of the tile to retrieve progress on"""
 	
 	tile = args[0]
 	tld = tiles.all(ctx.guild)[tile]

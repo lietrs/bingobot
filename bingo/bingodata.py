@@ -42,7 +42,7 @@ def getBingoStatus(server):
 
 		return d
 	else:
-		return {"started": False}
+		return {"started": False, "ended": False}
 
 def setBingoStatus(server, status):
 
@@ -52,3 +52,11 @@ def setBingoStatus(server, status):
 def isBingoStarted(server):
 	st = getBingoStatus(server)
 	return st["started"]
+
+def isBingoEnded(server):
+	st = getBingoStatus(server)
+	return st["started"]
+
+def isBingoActive(server):
+	st = getBingoStatus(server)
+	return st["started"] and not st["ended"]
