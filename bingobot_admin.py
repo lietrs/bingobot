@@ -3,6 +3,7 @@ import discord
 from discord.ext import commands
 import asyncio
 import logging
+import re
 
 from bingo import discordbingo, commands, tiles, bingodata, teams, board
 
@@ -35,8 +36,8 @@ async def bingo_init(ctx: discord.ext.commands.Context, auth, args):
 
 	Creates the basic channels and roles required for the bingo"""
 
-	if not ctx.author == ctx.guild.owner:
-		raise discordbingo.PermissionDenied()
+	# if not ctx.author == ctx.guild.owner:
+	# 	raise discordbingo.PermissionDenied()
 
 	async with ctx.typing():
 		await discordbingo.bingoInit(ctx, ctx.guild.me, ctx.author)
@@ -54,8 +55,8 @@ async def bingo_cleanup(ctx: discord.ext.commands.Context, auth, args):
 
 	Removes all the bingo specific channels, teams should be deleted first"""
 
-	if not ctx.author == ctx.guild.owner:
-		raise discordbingo.PermissionDenied()
+	# if not ctx.author == ctx.guild.owner:
+	# 	raise discordbingo.PermissionDenied()
 
 	async with ctx.typing():
 		await discordbingo.bingoCleanup(ctx)
@@ -600,56 +601,155 @@ async def bingo_tiles_progress(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.send("\n".join(res))
 
 
+async def bingo_tiles_createapprovalpost(ctx: discord.ext.commands.Context, auth, args):
+	""" Create dummy approval post
+
+	Usage: !bingo tiles createapprovalpost TEAM TILE
+
+	TILE - The name of the tile to retrieve progress on"""
+
+	team = args[0]
+	tile = args[1]
+
+	brd = board.load(ctx.guild)
+	tld = brd.getTileByName(tile)
+
+	message = await ctx.send(f"[{team}:{tile}] {tld.name}")
+	await message.add_reaction('✅')
+	await message.add_reaction('🏴󠁧󠁢󠁳󠁣󠁴󠁿')
+
+
+
+
+async def isBingoTaskApproved(bot, payload):
+	channel = await bot.fetch_channel(payload.channel_id)
+	message = await channel.fetch_message(payload.message_id)
+
+	# Todo: Check message author is actually bingobot or channel is the mod channel?
+
+	# ignore reactions from bingobot
+	if message.author.id == payload.user_id:
+		return
+
+	# Parse message:
+	f = re.findall("\[(.*?)\:(.*?)\]", message.content)
+	if not f:
+		return
+
+	team = f[0][0]
+	tile = f[0][1]
+
+	# Check user permissions
+	guild = bot.get_guild(payload.guild_id)
+	user = guild.get_member(payload.user_id)
+	perms = discordbingo.userGetPermLevels(user)
+
+	if not commands.PermLevel.Admin in perms and not commands.PermLevel.Mod in perms:
+		await channel.send(f'{user.name} you are not an admin!')
+		return
+
+	if commands.PermLevel.Player in perms:
+		if team == perms[commands.PermLevel.Player]:
+			await channel.send(f'{user.name} you are in that team!')
+			return
+
+
+	teams.addApproval(guild, team, tile, user)
+	await discordbingo.auditLogGuild(guild, user, f"Approved tile {tile} for team {team}")
+
+
+async def isBingoTaskUnapproved(bot, payload):
+	channel = await bot.fetch_channel(payload.channel_id)
+	message = await channel.fetch_message(payload.message_id)
+
+	# Todo: Check message author is actually bingobot
+
+	# ignore reactions from bingobot
+	if message.author.id == payload.user_id:
+		return
+
+	# Parse message:
+	f = re.findall("\[(.*?)\:(.*?)\]", message.content)
+	if not f:
+		return
+
+	team = f[0][0]
+	tile = f[0][1]
+
+	# Check user permissions
+	guild = bot.get_guild(payload.guild_id)
+	user = guild.get_member(payload.user_id)
+	perms = discordbingo.userGetPermLevels(user)
+
+	if not commands.PermLevel.Admin in perms and not commands.PermLevel.Mod in perms:
+		await channel.send(f'{user.name} you are not an admin!')
+		return
+
+	if commands.PermLevel.Player in perms:
+		if team == perms[commands.PermLevel.Player]:
+			await channel.send(f'{user.name} you are in that team!')
+			return
+
+	teams.removeApproval(guild, team, tile, user)
+	await discordbingo.auditLogGuild(guild, user, f"Removed approval on tile {tile} for team {team}")
+
+
+
 
 bingo_commands = {
 	"who": bingo_who,
-    "init": (commands.PermLevel.Owner, bingo_init),
-    "cleanup": (commands.PermLevel.Owner, bingo_cleanup),
-    "start": (commands.PermLevel.Admin, bingo_start),
-    "end": (commands.PermLevel.Admin, bingo_end),
-    "teams": (commands.PermLevel.Mod, {
-    	"": bingo_teams,
-    	"list": bingo_teams_list,
-    	"add": (commands.PermLevel.Admin, bingo_teams_add),
-    	"remove": (commands.PermLevel.Admin, bingo_teams_remove),
-    	"rename": (commands.PermLevel.Admin, bingo_teams_rename),
-    	"setcaptain": (commands.PermLevel.Admin, bingo_teams_setcaptain),
-    	"progress": bingo_teams_progress
-    }),
-    "players": (commands.PermLevel.Mod, {
-    	"": bingo_players,
-    	"list": bingo_players_list,
-    	"add": (commands.PermLevel.Admin, bingo_players_add),
-    	"remove": (commands.PermLevel.Admin, bingo_players_remove)
-    }),
-    "tiles": (commands.PermLevel.Mod, {
-        "": bingo_tiles,
-        "list": bingo_tiles_list,
-        "about": bingo_tiles_about,
-        "add": (commands.PermLevel.Admin, {
-        	"basic": bingo_tiles_add,
-        	"xp": bingo_tiles_add_xp,
-        	"multi": bingo_tiles_add_multi,
-        	"items": bingo_tiles_add_items,
-        	"any": bingo_tiles_add_any,
-        	"all": bingo_tiles_add_all
-        }),
-        "approve": bingo_tiles_approve,
-        "setprogress": bingo_tiles_setprogress,
-        "addprogress": bingo_tiles_addprogress,
-        "remove": (commands.PermLevel.Admin, bingo_tiles_remove),
-        "progress": bingo_tiles_progress
-    })
+	# "init": (commands.PermLevel.Owner, bingo_init),
+	# "cleanup": (commands.PermLevel.Owner, bingo_cleanup),
+	"init": bingo_init,
+	"cleanup": bingo_cleanup,
+	"start": (commands.PermLevel.Admin, bingo_start),
+	"end": (commands.PermLevel.Admin, bingo_end),
+	"teams": (commands.PermLevel.Mod, {
+		"": bingo_teams,
+		"list": bingo_teams_list,
+		"add": (commands.PermLevel.Admin, bingo_teams_add),
+		"remove": (commands.PermLevel.Admin, bingo_teams_remove),
+		"rename": (commands.PermLevel.Admin, bingo_teams_rename),
+		"setcaptain": (commands.PermLevel.Admin, bingo_teams_setcaptain),
+		"progress": bingo_teams_progress
+	}),
+	"players": (commands.PermLevel.Mod, {
+		"": bingo_players,
+		"list": bingo_players_list,
+		"add": (commands.PermLevel.Admin, bingo_players_add),
+		"remove": (commands.PermLevel.Admin, bingo_players_remove)
+	}),
+	"tiles": (commands.PermLevel.Mod, {
+		"": bingo_tiles,
+		"list": bingo_tiles_list,
+		"about": bingo_tiles_about,
+		"add": (commands.PermLevel.Admin, {
+			"basic": bingo_tiles_add,
+			"xp": bingo_tiles_add_xp,
+			"multi": bingo_tiles_add_multi,
+			"items": bingo_tiles_add_items,
+			"any": bingo_tiles_add_any,
+			"all": bingo_tiles_add_all
+		}),
+		"approve": bingo_tiles_approve,
+		"setprogress": bingo_tiles_setprogress,
+		"addprogress": bingo_tiles_addprogress,
+		"remove": (commands.PermLevel.Admin, bingo_tiles_remove),
+		"progress": bingo_tiles_progress,
+		"createapprovalpost": bingo_tiles_createapprovalpost
+	})
 }
 
 async def command(ctx: discord.ext.commands.Context, args):
 	"""Administrator tools for managing the bingo"""
 	auth = discordbingo.ctxGetPermLevels(ctx)
-	mauth = max(auth.keys())
+	# mauth = max(auth.keys())
 
-	if mauth < commands.PermLevel.Captain:
-		print(f"Denied. {auth}")
-		return # Silently fail
+	mauth = commands.PermLevel.Owner
+
+	# if mauth < commands.PermLevel.Captain:
+	# 	print(f"Denied. {auth}")
+	# 	return # Silently fail
 
 	try:
 		f, ar, hlp = commands.Lookup(mauth, bingo_commands, args)
@@ -663,6 +763,7 @@ async def command(ctx: discord.ext.commands.Context, args):
 
 	except discordbingo.PermissionDenied:
 		await ctx.send("Permission denied.")
+		raise
 
 	except discordbingo.NoTeamFound:
 		await ctx.send("Team name not recognised.")

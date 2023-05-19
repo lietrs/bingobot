@@ -146,11 +146,27 @@ def addApproval(server, team, tile, mod, link = None):
 	t = getTile(tm, tile)
 	t.status = TmTileStatus.Approved 
 
-	# if link:
-	# 	tm[tile].approved_links.append(link)
+	if link:
+		t.approved_links.append(link)
 
-	# if not mod in tm[tile].approved_by:
-	# 	tm[tile].approved_by.append(mod)
+	if not str(mod) in t.approved_by:
+		t.approved_by.append(str(mod))
+
+	setTile(tm, tile, t)
+
+	saveTeamTiles(server, team, tm)
+
+
+def removeApproval(server, team, tile, mod):
+	tm = loadTeamTiles(server, team)
+
+	t = getTile(tm, tile)
+
+	if str(mod) in t.approved_by:
+		t.approved_by[:] = [x for x in t.approved_by if not x == str(mod)]
+
+	if not t.approved_by:
+		t.status = TmTileStatus.Incomplete 
 
 	setTile(tm, tile, t)
 

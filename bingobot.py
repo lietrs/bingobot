@@ -26,6 +26,22 @@ bot = commands.Bot(intents=intents, command_prefix=gPREFIX, description='Bingo t
 
 
 
+@bot.event
+async def on_raw_reaction_add(payload):
+    if str(payload.emoji) == '✅':
+        await bingobot_admin.isBingoTaskApproved(bot, payload)
+
+@bot.event
+async def on_raw_reaction_remove(payload):
+    if str(payload.emoji) == '✅':
+        await bingobot_admin.isBingoTaskUnapproved(bot, payload)
+
+
+
+
+
+
+
 @bot.command()
 async def bingo(ctx: discord.ext.commands.Context, *args):
     """ Administer the Bingo """

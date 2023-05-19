@@ -76,6 +76,16 @@ def ctxGetPermLevels(ctx):
 	return ret
 
 
+async def auditLogGuild(guild, user, message):
+	auditch = discord.utils.get(guild.channels, name=names.auditChannel)
+
+	m = F"[{str(user)}]: {message}"
+
+	# Todo: Log to file
+
+	await auditch.send(m)
+
+
 async def auditLog(ctx, message):
 	auditch = discord.utils.get(ctx.guild.channels, name=names.auditChannel)
 
@@ -163,7 +173,7 @@ async def bingoCleanup(ctx):
 		except:
 			pass
 
-	await auditLog(ctx, "Channels deleted. Audit log is retained, please delete manually")
+	# await auditLog(ctx, "Channels deleted. Audit log is retained, please delete manually")
 
 	for r in [names.adminRole, names.ownerRole, names.modRole]:
 		rol = discord.utils.get(ctx.guild.roles, name=r)
