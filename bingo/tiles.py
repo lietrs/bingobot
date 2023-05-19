@@ -14,16 +14,17 @@ class Tile:
 	board_y = 0
 
 	def __init__(self, d = None):
+		self.name = ""
+		self.description = ""
+		self.board_x = 0
+		self.board_y = 0
+
 		if d:
 			self.name = d["name"]
 			self.description = d["description"]
-			self.board_x = d["board"]["x"]
-			self.board_y = d["board"]["y"]
-		else:
-			self.name = ""
-			self.description = ""
-			self.board_x = 0
-			self.board_y = 0
+			if "board" in d:
+				self.board_x = d["board"]["x"]
+				self.board_y = d["board"]["y"]
 
 
 	def toDict(self):
@@ -32,9 +33,9 @@ class Tile:
 	def basicString(self):
 		return f"{self.name} - {self.description}"
 
-	def progressString(self, status, progress):
+	def progressString(self, tmd):
 		statstr = ["In progress", "Awaiting approval", "Completed!"]
-		return statstr[status]
+		return statstr[tmd.status]
 
 	def about(self):
 		return f"Name: {self.name}\nDescription: {self.description}\nBoard Location: {self.board_x},{self.board_y}"
@@ -42,6 +43,135 @@ class Tile:
 	def mergeProgress(self, A, B):
 		return A
 
+
+def indentStr(str):
+	return "\t" + str.replace("\n", "\n\t")
+
+class TileSet(Tile):
+	subtiles = {}
+
+	def __init__(self, d = None):
+		super().__init__(d)
+		if d:
+			self.subtiles = {}
+			for sl, t in d["subtiles"].items():
+				self.subtiles[sl] = tileFromJson(t)
+		else:
+			self.subtiles = {}
+
+	def toDict(self):
+		ret = super().toDict()
+		ret["type"] = "set"
+		ret["subtiles"] = {}
+		for sl, t in self.subtiles.items(): 
+			td = t.toDict()
+			del td["board"]
+			ret["subtiles"][sl] = td
+
+		return ret
+
+	def basicString(self):
+		ret = super().basicString()
+		for sl, t in self.subtiles.items():
+			ret += "\n" + indentStr(f"[{sl}] " + t.basicString())
+
+		return ret
+
+	def progressString(self, tmd):
+		ret = super().progressString(tmd)
+		tstrs = []
+		countApproved = 0
+
+		for sl,td in self.subtiles.items():
+			ps = "Not started"
+			if sl in tmd.subtiles:
+				ps = td.progressString(tmd.subtiles[sl])
+				if tmd.subtiles[sl].status == 2:
+					countApproved += 1
+			tstrs.append(indentStr(f"{td.name}: {ps}"))
+
+		ret = "\n" + "\n".join(tstrs)
+		return ret
+
+	def about(self):
+		ret = super().about()
+		ret += "\nSubtiles: " + ", ".join(self.subtiles.keys())
+		return ret
+
+	def mergeProgress(self, A, B):
+		ret = {}
+		for sl, t in self.subtiles():
+			if sl in A and sl in B:
+				ret[sl] = t.mergeProgress(A[sl], B[sl])
+			elif sl in A:
+				ret[sl] = A[sl]
+			elif sl in B:
+				ret[sl] = B[sl]
+		return ret
+
+	def getTileByName(self, subTileName):
+		tns = subTileName.split(".")
+		if len(tns) > 1:
+			if isinstance(self.subtiles[tns[0]], TileSet):
+				return self.subtiles[tns[0]].getTileByName(".".join(tns[1:]))
+			else:
+				# Error: Tried to access subtile, not a tile set
+				return None
+		else:
+			return self.subtiles[tns[0]]
+
+	def setTileByName(self, subTileName, tile):
+		tns = subTileName.split(".")
+		if len(tns) > 1:
+			if isinstance(self.subtiles[tns[0]], TileSet):
+				self.subtiles[tns[0]].setTileByName(".".join(tns[1:]), tile)
+			else:
+				# Error: Tried to access subtile, not a tile set
+				return None
+		else:
+			self.subtiles[tns[0]] = tile
+
+	def removeTile(self, subTileName):
+		tns = subTileName.split(".")
+		if len(tns) > 1:
+			if isinstance(self.subtiles[tns[0]], TileSet):
+				self.subtiles[tns[0]].removeTile(".".join(tns[1:]))
+			else:
+				# Error: Tried to access subtile, not a tile set
+				return None
+		else:
+			del self.subtiles[tns[0]]
+
+
+class TileAnyOf(TileSet):
+	
+	def toDict(self):
+		ret = super().toDict()
+		ret["type"] = "any"
+		return ret
+
+
+class TileAllOf(TileSet):
+	
+	def toDict(self):
+		ret = super().toDict()
+		ret["type"] = "all"
+		return ret
+
+	def progressString(self, tmd):
+		tstrs = []
+		countApproved = 0
+
+		for sl,td in self.subtiles.items():
+			ps = "Not started"
+			if sl in tmd.subtiles:
+				ps = td.progressString(tmd.subtiles[sl])
+				if tmd.subtiles[sl].status == 2:
+					countApproved += 1
+			tstrs.append(indentStr(f"{td.name}: {ps}"))
+
+		ret = f"{countApproved} out of {len(self.subtiles)} completed\n" + "\n".join(tstrs)
+		return ret
 
 
 def formatXP(amount):
@@ -82,13 +212,16 @@ class XPTile(Tile):
 	def basicString(self):
 		return f"{super().basicString()} ({self.required} {self.skill} xp required)"
 
-	def progressString(self, status, progress):
-		if status > 0:
-			return super().progressString(status, progress)
+	def progressString(self, tmd):
+		if tmd.status > 0:
+			return super().progressString(tmd)
 		else:
-			pct = str(math.floor(int(progress) / self.required * 1000) / 10)
+			pint = 0
+			if tmd.progress:
+				pint = int(tmd.progress)
+			pct = str(math.floor(pint / self.required * 1000) / 10)
 
-			return f"{formatXP(progress)} / {formatXP(self.required)} ({pct}%)"
+			return f"{formatXP(pint)} / {formatXP(self.required)} ({pct}%)"
 
 	def about(self):
 		return super().about() + f"\nXP Requirement: {formatXP(self.required)} {self.skill}"
@@ -116,12 +249,15 @@ class CountTile(Tile):
 	def basicString(self):
 		return f"{super().basicString()} ({self.required} required)"
 
-	def progressString(self, status, progress):
-		if status > 0:
-			return super().progressString(status, progress)
+	def progressString(self, tmd):
+		if tmd.status > 0:
+			return super().progressString(tmd)
 		else:
-			pct = str(math.floor(int(progress) / self.required * 1000) / 10)
-			return f"{progress} / {self.required} ({pct}%)"
+			pint = 0
+			if tmd.progress:
+				pint = int(tmd.progress)
+			pct = str(math.floor(pint / self.required * 1000) / 10)
+			return f"{pint} / {self.required} ({pct}%)"
 
 	def about(self):
 		return super().about() + f"\nRequirement: {self.required}"
@@ -149,11 +285,11 @@ class ItemsTile(Tile):
 		itemList = ", ".join(self.items)
 		return f"{super().basicString()} ({itemList})"
 
-	def progressString(self, status, progress):
+	def progressString(self, tmd):
 		if status > 0:
-			return super().progressString(status, progress)
+			return super().progressString(tmd)
 		else:
-			done = progress.split(",")
+			done = tmd.progress.split(",")
 			cnt = 0
 			txt = []
 
@@ -181,63 +317,21 @@ class ItemsTile(Tile):
 
 
 
-
-
-
-
-def initFile(server):
-	saveFile(server)
-
-
-
-#Todo: In memory copy of tile data
-def loadTiles(server):
-	ret = {}
-	if os.path.exists(bingodata._fieldsFile(server)):
-		with open(bingodata._fieldsFile(server), "r") as f:
-			d = json.load(f)
-
-		for s, td in d.items():
-			match td["type"]:
-				case "basic":
-					ret[s] = Tile(td)
-				case "xp":
-					ret[s] = XPTile(td)
-				case "count":
-					ret[s] = CountTile(td)
-				case "items":
-					ret[s] = ItemsTile(td)
+def tileFromJson(js):
+	match js["type"]:
+		case "basic":
+			ret = Tile(js)
+		case "xp":
+			ret = XPTile(js)
+		case "count":
+			ret = CountTile(js)
+		case "items":
+			ret = ItemsTile(js)
+		case "set":
+			ret = TileSet(js)
+		case "all":
+			ret = TileAllOf(js)
+		case "any":
+			ret = TileAnyOf(js)
 
 	return ret
-
-def saveTiles(server, tld):
-	d = {}
-	for s, tl in tld.items():
-		d[s] = tl.toDict()
-
-	with open(bingodata._fieldsFile(server), "w") as f:
-		json.dump(d, f)
-
-
-
-def editTile(server, tile):
-	tiles = loadTiles(server)
-	tiles[tile.slug] = tile
-	saveTiles(server, tiles)
-
-def renameTile(server, oldSlug, newSlug):
-	tiles = loadTiles(server)
-	t = tiles[oldSlug]
-	del tiles[oldSlug]
-	tiles[newSlug] = t
-	saveTiles(server, tiles)
-
-def removeTile(server, tile):
-	tiles = loadTiles(server)
-	del tiles[tile]
-	saveTiles(server, tiles)
-
-
-def all(server):
-	return loadTiles(server)
-

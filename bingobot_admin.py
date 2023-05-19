@@ -4,7 +4,7 @@ from discord.ext import commands
 import asyncio
 import logging
 
-from bingo import discordbingo, commands, tiles, bingodata, teams
+from bingo import discordbingo, commands, tiles, bingodata, teams, board
 
 
 goodReaction = "\N{White Heavy Check Mark}"
@@ -295,15 +295,17 @@ async def bingo_teams_progress(ctx: discord.ext.commands.Context, auth, args):
 
 	team = args[0]
 
-	tls = tiles.all(ctx.guild)
+	brd = board.load(ctx.guild)
 	tmd = teams.getTeamProgress(ctx.guild, args[0])
 
 	tstrs = []
 
-	for sl,td in tls.items():
+	for sl,td in brd.tiles.items():
 		ps = "Not started"
 		if sl in tmd:
-			ps = td.progressString(tmd[sl].status, tmd[sl].progress)
+			ps = td.progressString(tmd[sl])
+		else:
+			ps = td.progressString(teams.TmTile())
 		tstrs.append(f"{td.name}: {ps}")
 
 	await ctx.send("\n".join(tstrs))
@@ -324,10 +326,10 @@ async def bingo_tiles_list(ctx: discord.ext.commands.Context, auth, args):
 
 	Usage: !bingo tiles list"""
 
-	tls = tiles.all(ctx.guild)
+	brd = board.load(ctx.guild)
 
-	retstr = f"{len(tls)} tile(s):"
-	for sl, t in tls.items():
+	retstr = f"{len(brd.tiles)} tile(s):"
+	for sl, t in brd.tiles.items():
 		retstr += f"\n[{sl}] {t.basicString()}"
 
 	await ctx.send(retstr)
@@ -347,11 +349,57 @@ async def bingo_tiles_add(ctx: discord.ext.commands.Context, auth, args):
 		return
 
 	t = tiles.Tile()
-	t.slug, t.name, t.description = args[0:3]
+	t.name, t.description = args[1:3]
 	t.board_x = int(args[3])
 	t.board_y = int(args[4])
 
-	tiles.editTile(ctx.guild, t)
+	board.addTile(ctx.guild, args[0], t)
+
+	await ctx.message.add_reaction(goodReaction)
+
+
+async def bingo_tiles_add_any(ctx: discord.ext.commands.Context, auth, args):
+	""" Add bingo tiles - AnyOf tile
+
+	Usage: !bingo tiles add any SLUG NAME DESCRIPTION X Y"""
+
+	if max(auth.keys()) < commands.PermLevel.Admin:
+		raise discordbingo.PermissionDenied()
+
+	# Usage: !bingo tiles add SLUG NAME DESCRIPTION X Y
+	if len(args) < 5:
+		await ctx.send("Usage: !bingo tiles add any SLUG NAME DESCRIPTION X Y")
+		return
+
+	t = tiles.TileAnyOf()
+	t.name, t.description = args[1:3]
+	t.board_x = int(args[3])
+	t.board_y = int(args[4])
+
+	board.addTile(ctx.guild, args[0], t)
+
+	await ctx.message.add_reaction(goodReaction)
+
+
+async def bingo_tiles_add_all(ctx: discord.ext.commands.Context, auth, args):
+	""" Add bingo tiles - AllOf tile
+
+	Usage: !bingo tiles add any SLUG NAME DESCRIPTION X Y"""
+
+	if max(auth.keys()) < commands.PermLevel.Admin:
+		raise discordbingo.PermissionDenied()
+
+	# Usage: !bingo tiles add SLUG NAME DESCRIPTION X Y
+	if len(args) < 5:
+		await ctx.send("Usage: !bingo tiles add any SLUG NAME DESCRIPTION X Y")
+		return
+
+	t = tiles.TileAllOf()
+	t.name, t.description = args[1:3]
+	t.board_x = int(args[3])
+	t.board_y = int(args[4])
+
+	board.addTile(ctx.guild, args[0], t)
 
 	await ctx.message.add_reaction(goodReaction)
 
@@ -377,7 +425,7 @@ async def bingo_tiles_add_xp(ctx: discord.ext.commands.Context, auth, args):
 	t.board_x = int(args[3])
 	t.board_y = int(args[4])
 
-	tiles.editTile(ctx.guild, t)
+	board.addTile(ctx.guild, args[0], t)
 
 	await ctx.message.add_reaction(goodReaction)
 
@@ -400,7 +448,7 @@ async def bingo_tiles_add_multi(ctx: discord.ext.commands.Context, auth, args):
 	t.board_x = int(args[4])
 	t.board_y = int(args[5])
 
-	tiles.editTile(ctx.guild, t)
+	board.addTile(ctx.guild, args[0], t)
 
 	await ctx.message.add_reaction(goodReaction)
 
@@ -422,7 +470,7 @@ async def bingo_tiles_add_items(ctx: discord.ext.commands.Context, auth, args):
 	t.board_y = int(args[4])
 	t.items = args[5:]
 
-	tiles.editTile(ctx.guild, t)
+	board.addTile(ctx.guild, args[0], t)
 
 	await ctx.message.add_reaction(goodReaction)
 
@@ -434,7 +482,7 @@ async def bingo_tiles_remove(ctx: discord.ext.commands.Context, auth, args):
 
 	TILE - The name of the tile to get information on. For tile names use `!bingo tiles list`"""
 
-	tiles.removeTile(ctx.guild, args[0])
+	board.removeTile(ctx.guild, args[0])
 
 
 async def bingo_tiles_approve(ctx: discord.ext.commands.Context, auth, args):
@@ -522,7 +570,8 @@ async def bingo_tiles_about(ctx: discord.ext.commands.Context, auth, args):
 	TILE - The name of the tile to get information on. For tile names use `!bingo tiles list` """
 	
 	tile = args[0]
-	tld = tiles.all(ctx.guild)[tile]
+	brd = board.load(ctx.guild)
+	tld = brd.getTileByName(tile)
 
 	await ctx.send(tld.about())
 
@@ -535,7 +584,8 @@ async def bingo_tiles_progress(ctx: discord.ext.commands.Context, auth, args):
 	TILE - The name of the tile to retrieve progress on"""
 	
 	tile = args[0]
-	tld = tiles.all(ctx.guild)[tile]
+	brd = board.load(ctx.guild)
+	tld = brd.getTileByName(tile)
 
 	res = []
 
@@ -580,7 +630,9 @@ bingo_commands = {
         	"basic": bingo_tiles_add,
         	"xp": bingo_tiles_add_xp,
         	"multi": bingo_tiles_add_multi,
-        	"items": bingo_tiles_add_items
+        	"items": bingo_tiles_add_items,
+        	"any": bingo_tiles_add_any,
+        	"all": bingo_tiles_add_all
         }),
         "approve": bingo_tiles_approve,
         "setprogress": bingo_tiles_setprogress,

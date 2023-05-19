@@ -13,7 +13,7 @@ from bingo import bingodata
 with open("token.txt", 'r') as fp:
     gTOKEN = fp.readline()
 
-gPREFIX = "¬"
+gPREFIX = "$"
 
 
 # Bot
