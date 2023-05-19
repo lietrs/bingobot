@@ -37,11 +37,6 @@ async def on_raw_reaction_remove(payload):
         await bingobot_admin.isBingoTaskUnapproved(bot, payload)
 
 
-
-
-
-
-
 @bot.command()
 async def bingo(ctx: discord.ext.commands.Context, *args):
     """ Administer the Bingo """

@@ -592,9 +592,7 @@ async def bingo_tiles_progress(ctx: discord.ext.commands.Context, auth, args):
 
 	for t in discordbingo.listTeams(ctx.guild):
 		tmd = teams.getTeamProgress(ctx.guild, t)
-		ps = "Not started"
-		if tile in tmd:
-			ps = tld.progressString(tmd[tile].status, tmd[tile].progress)
+		ps = tld.progressString(teams.getTile(tmd, tile))
 
 		res.append(f"{t}: {ps}")
 
@@ -606,6 +604,7 @@ async def bingo_tiles_createapprovalpost(ctx: discord.ext.commands.Context, auth
 
 	Usage: !bingo tiles createapprovalpost TEAM TILE
 
+	TEAM - the team name (as at the start of their text channel)
 	TILE - The name of the tile to retrieve progress on"""
 
 	team = args[0]
@@ -615,10 +614,47 @@ async def bingo_tiles_createapprovalpost(ctx: discord.ext.commands.Context, auth
 	tld = brd.getTileByName(tile)
 
 	message = await ctx.send(f"[{team}:{tile}] {tld.name}")
-	await message.add_reaction('✅')
-	await message.add_reaction('🏴󠁧󠁢󠁳󠁣󠁴󠁿')
+	# await message.add_reaction('✅')
+	# await message.add_reaction('🏴󠁧󠁢󠁳󠁣󠁴󠁿')
 
 
+
+async def bingo_teams_createapprovechannel(ctx: discord.ext.commands.Context, auth, args):
+	""" Create dummy approval post
+
+	Usage: !bingo teams createapprovalpost TEAM
+
+	TEAM - the team name (as at the start of their text channel)"""
+
+	teamSlug = args[0]
+
+	chat = discord.utils.get(ctx.guild.channels, name=discordbingo.names.teamChat(teamSlug))
+
+	if not chat:
+		raise NoTeamFound()
+
+	modRole = discord.utils.get(ctx.guild.roles, name=discordbingo.names.modRole)
+	adminRole = discord.utils.get(ctx.guild.roles, name=discordbingo.names.adminRole)
+	ownerRole = discord.utils.get(ctx.guild.roles, name=discordbingo.names.ownerRole)
+
+	cat = chat.category
+	overwrites = {
+		ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False),
+		modRole: discord.PermissionOverwrite(read_messages=True),
+		adminRole: discord.PermissionOverwrite(read_messages=True),
+		ownerRole: discord.PermissionOverwrite(read_messages=True)
+	}
+
+	chan = await ctx.guild.create_text_channel(discordbingo.names.teamApproval(teamSlug), category=cat)
+
+	brd = board.load(ctx.guild)
+
+	for sl, t in brd.tiles.items():
+		if isinstance(t, tiles.TileSet):
+			for sl2, t2 in t.subtiles.items():
+				await chan.send(f"[{teamSlug}:{sl}.{sl2}] {t2.name}")
+		else:
+			await chan.send(f"[{teamSlug}:{sl}] {t.name}")
 
 
 async def isBingoTaskApproved(bot, payload):
@@ -711,7 +747,8 @@ bingo_commands = {
 		"remove": (commands.PermLevel.Admin, bingo_teams_remove),
 		"rename": (commands.PermLevel.Admin, bingo_teams_rename),
 		"setcaptain": (commands.PermLevel.Admin, bingo_teams_setcaptain),
-		"progress": bingo_teams_progress
+		"progress": bingo_teams_progress,
+		"createapprovechannel": bingo_teams_createapprovechannel
 	}),
 	"players": (commands.PermLevel.Mod, {
 		"": bingo_players,

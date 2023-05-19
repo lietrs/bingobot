@@ -29,6 +29,9 @@ class names:
 	def teamChat(team):
 		return f"{team}-chat"
 
+	def teamApproval(team):
+		return f"{team}-approvals"
+
 	def teamSubmissionsChan(team):
 		return f"{team}-submissions"
 
