@@ -1,12 +1,16 @@
 
 import discord
-from discord.ext import commands
+import discord.ext.commands
 import asyncio
 import logging
+import re
 
 from bingo import commands
 
 
+def slugify(value):
+	value = re.sub('[^\w\s-]', '', value).strip().lower()
+	return re.sub('[-\s]+', '-', value)
 
 class names:
 	auditChannel = "bingo-audit"
@@ -79,10 +83,18 @@ def ctxGetPermLevels(ctx):
 	return ret
 
 
+def ctxIsAdmin(ctx):
+    perms = discordbingo.ctxGetPermLevels(ctx)
+    
+    if not commands.PermLevel.Admin in perms and not commands.PermLevel.Owner in perms:
+        return False
+
+    return True
+
 async def auditLogGuild(guild, user, message):
 	auditch = discord.utils.get(guild.channels, name=names.auditChannel)
 
-	m = F"[{str(user)}]: {message}"
+	m = f"[{str(user)}]: {message}"
 
 	# Todo: Log to file
 
@@ -92,7 +104,7 @@ async def auditLogGuild(guild, user, message):
 async def auditLog(ctx, message):
 	auditch = discord.utils.get(ctx.guild.channels, name=names.auditChannel)
 
-	m = F"[{str(ctx.author)} in {ctx.channel.name}]: {message}"
+	m = f"[{str(ctx.author)} in {ctx.channel.name}]: {message}"
 
 	# Todo: Log to file
 
@@ -162,7 +174,6 @@ async def bingoInit(ctx, bot, owner):
 				await ctx.guild.create_text_channel(n, category=category, overwrites=ovr)
 			except:
 				print(f"Failed to create {n} chat")
-				raise
 
 	await auditLog(ctx, f"Bingo was initialised by the guild owner")
 
@@ -193,8 +204,8 @@ def listTeams(guild):
 	ret = []
 	for r in guild.roles:
 		n = r.name.split('-')
-		if len(n) == 2 and n[1] == "member":
-			ret.append(n[0])
+		if n[-1] == "member":
+			ret.append("-".join(n[0:-1]))
 
 	return ret
 
@@ -205,7 +216,7 @@ async def addTeam(ctx, teamSlug, teamName):
 	guild = ctx.guild
 
 	role = await guild.create_role(name = names.memberRole(teamSlug))
-	cptRole = await guild.create_role(name = names.captainRole(teamSlug))
+	# cptRole = await guild.create_role(name = names.captainRole(teamSlug))
 	modRole = discord.utils.get(guild.roles, name=names.modRole)
 	adminRole = discord.utils.get(guild.roles, name=names.adminRole)
 	ownerRole = discord.utils.get(guild.roles, name=names.ownerRole)
@@ -281,17 +292,20 @@ async def renameTeam(ctx, teamSlug, newTeamSlug, newTeamName):
 	if not memberRole:
 		raise NoTeamFound()
 
-	captainRole = discord.utils.get(ctx.guild.roles, name=names.captainRole(teamSlug))
+	# captainRole = discord.utils.get(ctx.guild.roles, name=names.captainRole(teamSlug))
 	cat = discord.utils.get(ctx.guild.channels, name=names.teamChat(teamSlug)).category
 
 
 	# Rename everything
 	await memberRole.edit(name=names.memberRole(newTeamSlug))
-	await captainRole.edit(name=names.captainRole(newTeamSlug))
-	for ch in [names.teamChat, names.teamVC, names.teamSubmissionsChan, name.teamApproval]:
+	# await captainRole.edit(name=names.captainRole(newTeamSlug))
+	for ch in [names.teamChat, names.teamVC, names.teamSubmissionsChan, names.teamApproval]:
 		chan = discord.utils.get(ctx.guild.channels, name=ch(teamSlug))
 
-		await chan.edit(name=ch(newTeamSlug))
+		try:
+			await chan.edit(name=ch(newTeamSlug))
+		except:
+			pass
 
 	await cat.edit(name=names.teamCategory(newTeamName))
 

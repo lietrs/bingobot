@@ -57,13 +57,6 @@ class Board:
 
 
 
-
-
-
-
-
-
-
 def initFile(server):
 	save(server, Board())
 

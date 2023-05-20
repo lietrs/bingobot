@@ -4,9 +4,10 @@ from discord.ext import commands
 import asyncio
 import logging
 import re 
+import os, json
 
 import bingobot_admin
-from bingo import bingodata, board, teams
+from bingo import bingodata, board, teams, discordbingo
 import bingo.commands
 
 
@@ -15,7 +16,7 @@ import bingo.commands
 with open("token.txt", 'r') as fp:
     gTOKEN = fp.readline()
 
-gPREFIX = "$"
+gPREFIX = "¬"
 
 
 # Bot
@@ -51,15 +52,14 @@ async def isBingoTaskApproved(bot, payload):
     user = guild.get_member(payload.user_id)
     perms = discordbingo.userGetPermLevels(user)
 
-    if not bingo.bingo.commands.PermLevel.Admin in perms and not bingo.commands.PermLevel.Mod in perms:
-        await channel.send(f'{user.name} you are not an admin!')
-        return
+    # if not bingo.commands.PermLevel.Admin in perms and not bingo.commands.PermLevel.Mod in perms:
+    #     await channel.send(f'{user.name} you are not an admin!')
+    #     return
 
-    if bingo.commands.PermLevel.Player in perms:
-        if team == perms[bingo.commands.PermLevel.Player]:
-            await channel.send(f'{user.name} you are in that team!')
-            return
-
+    # if bingo.commands.PermLevel.Player in perms:
+    #     if team == perms[bingo.commands.PermLevel.Player]:
+    #         await channel.send(f'{user.name} you are in that team!')
+    #         return
 
     teams.addApproval(guild, team, tile, user)
     await discordbingo.auditLogGuild(guild, user, f"Approved tile {tile} for team {team}")
@@ -88,14 +88,14 @@ async def isBingoTaskUnapproved(bot, payload):
     user = guild.get_member(payload.user_id)
     perms = discordbingo.userGetPermLevels(user)
 
-    if not bingo.commands.PermLevel.Admin in perms and not bingo.commands.PermLevel.Mod in perms:
-        await channel.send(f'{user.name} you are not an admin!')
-        return
+    # if not bingo.commands.PermLevel.Admin in perms and not bingo.commands.PermLevel.Mod in perms:
+    #     await channel.send(f'{user.name} you are not an admin!')
+    #     return
 
-    if bingo.commands.PermLevel.Player in perms:
-        if team == perms[bingo.commands.PermLevel.Player]:
-            await channel.send(f'{user.name} you are in that team!')
-            return
+    # if bingo.commands.PermLevel.Player in perms:
+    #     if team == perms[bingo.commands.PermLevel.Player]:
+    #         await channel.send(f'{user.name} you are in that team!')
+    #         return
 
     teams.removeApproval(guild, team, tile, user)
     await discordbingo.auditLogGuild(guild, user, f"Removed approval on tile {tile} for team {team}")
@@ -117,6 +117,59 @@ async def on_raw_reaction_remove(payload):
 
 
 @bot.command()
+async def addteam(ctx: discord.ext.commands.Context, *, teamname):
+
+    # Check if owner
+    # Check team doesn't already exist
+    # think that's it
+
+    await discordbingo.addTeam(ctx, discordbingo.slugify(teamname), teamname)
+
+@bot.command()
+async def renameteam(ctx: discord.ext.commands.Context, oldName, newName):
+
+    # Check if owner
+    # Check team doesn't already exist
+    # think that's it
+
+    await discordbingo.renameTeam(ctx, discordbingo.slugify(oldName), discordbingo.slugify(newName), newName)
+
+
+@bot.command()
+async def addplayers(ctx: discord.ext.commands.Context):
+    file= os.path.join(bingodata._serverDir(ctx.guild), "allplayers.json")
+    if os.path.exists(file):
+        with open(file, "r") as f:
+            d = json.load(f)
+
+        for team, players in d.items():
+            print(f"Add team {team}")
+            teamslug = discordbingo.slugify(team)
+            await discordbingo.addTeam(ctx, teamslug, team)
+
+            for player in players:
+                user = ctx.guild.get_member_named(player)
+                if not user:
+                    await ctx.send(f"\tPlayer {player} isn't in the server. Please add {teamslug}-member permission manually")
+                else:
+                    print(f"\tAdding player {user.name}")
+                    await discordbingo.addPlayer(ctx, teamslug, user)
+
+
+@bot.command()
+async def startbingo(ctx: discord.ext.commands.Context):
+
+    # check if owner
+
+    teams = discordbingo.listTeams(ctx.guild)
+
+    for team in teams:
+        await bingobot_admin.bingo_teams_createapprovechannel(ctx, None, [team])
+
+
+
+
+@bot.command()
 async def progress(ctx: discord.ext.commands.Context, *args):
     """ Administer the Bingo """
 
@@ -131,12 +184,10 @@ async def progress(ctx: discord.ext.commands.Context, *args):
     tstrs = []
 
     for sl,td in brd.tiles.items():
-        ps = "Not started"
+        ps = "0"
         if sl in tmd:
-            ps = td.progressString(tmd[sl])
-        else:
-            ps = td.progressString(teams.TmTile())
-        tstrs.append(f"{td.name}: {ps}")
+            ps = str(tmd[sl].status)
+        tstrs.append(f"{td.row},{td.col}: {ps}")
 
     await ctx.send("\n".join(tstrs))
 

@@ -10,25 +10,25 @@ import math
 class Tile:
 	name = ""
 	description = ""
-	board_x = 0
-	board_y = 0
+	col = 0
+	row = 0
 
 	def __init__(self, d = None):
 		self.name = ""
 		self.description = ""
-		self.board_x = 0
-		self.board_y = 0
+		self.col = 0
+		self.row = 0
 
 		if d:
 			self.name = d["name"]
 			self.description = d["description"]
-			if "board" in d:
-				self.board_x = d["board"]["x"]
-				self.board_y = d["board"]["y"]
+			if "col" in d:
+				self.col = d["col"]
+				self.row = d["row"]
 
 
 	def toDict(self):
-		return {"type": "basic", "name": self.name, "description": self.description, "board": {"x": self.board_x, "y": self.board_y}}
+		return {"type": "basic", "name": self.name, "description": self.description, "col": self.col, "row": self.row}
 
 	def basicString(self):
 		return f"{self.name} - {self.description}"
@@ -38,8 +38,10 @@ class Tile:
 		return statstr[tmd.status]
 
 	def about(self):
-		return f"Name: {self.name}\nDescription: {self.description}\nBoard Location: {self.board_x},{self.board_y}"
+		return f"Name: {self.name}\nDescription: {self.description}\nBoard Location: {self.col},{self.row}"
 
+
+def readSubtiles(sts):
 	def mergeProgress(self, A, B):
 		return A
 
@@ -65,7 +67,8 @@ class TileSet(Tile):
 		ret["subtiles"] = {}
 		for sl, t in self.subtiles.items(): 
 			td = t.toDict()
-			del td["board"]
+			del td["col"]
+			del td["row"]
 			ret["subtiles"][sl] = td
 
 		return ret
@@ -269,55 +272,55 @@ class CountTile(Tile):
 	def mergeProgress(self, A, B):
 		return str(int(A)+int(B))
 
-class ItemsTile(Tile):
-	items = []
+# class ItemsTile(Tile):
+# 	items = []
 
-	def __init__(self, d = None):
-		super().__init__(d)
-		self.items = []
-		if d:
-			self.items = d["items"]
+# 	def __init__(self, d = None):
+# 		super().__init__(d)
+# 		self.items = []
+# 		if d:
+# 			self.items = d["items"]
 
-	def toDict(self):
-		ret = super().toDict()
-		ret["items"] = self.items
-		ret["type"] = "items"
+# 	def toDict(self):
+# 		ret = super().toDict()
+# 		ret["items"] = self.items
+# 		ret["type"] = "items"
 
-		return ret
+# 		return ret
 
-	def basicString(self):
-		itemList = ", ".join(self.items)
-		return f"{super().basicString()} ({itemList})"
+# 	def basicString(self):
+# 		itemList = ", ".join(self.items)
+# 		return f"{super().basicString()} ({itemList})"
 
-	def progressString(self, tmd):
-		if status > 0:
-			return super().progressString(tmd)
-		else:
-			done = tmd.progress.split(",")
-			cnt = 0
-			txt = []
+# 	def progressString(self, tmd):
+# 		if status > 0:
+# 			return super().progressString(tmd)
+# 		else:
+# 			done = tmd.progress.split(",")
+# 			cnt = 0
+# 			txt = []
 
-			for i in self.items:
-				if i in done:
-					cnt += 1
-					txt.append(f"~{i}~")
-				else:
-					txt.append(i)
+# 			for i in self.items:
+# 				if i in done:
+# 					cnt += 1
+# 					txt.append(f"~{i}~")
+# 				else:
+# 					txt.append(i)
 
-			itemlist = ", ".join(txt)
-			return f"{cnt} out of {len(self.items)} ({itemlist})"
+# 			itemlist = ", ".join(txt)
+# 			return f"{cnt} out of {len(self.items)} ({itemlist})"
 
-	def about(self):
-		return super().about() + f"\nRequirement: {', '.join(self.items)}"
+# 	def about(self):
+# 		return super().about() + f"\nRequirement: {', '.join(self.items)}"
 
 
-	def mergeProgress(self, A, B):
-		ret = []
-		for i in self.items:
-			if (i in A) or (i in B):
-				ret.append(i)
+# 	def mergeProgress(self, A, B):
+# 		ret = []
+# 		for i in self.items:
+# 			if (i in A) or (i in B):
+# 				ret.append(i)
 
-		return ",".join(ret)
+# 		return ",".join(ret)
 
 
 
@@ -329,8 +332,8 @@ def tileFromJson(js):
 			ret = XPTile(js)
 		case "count":
 			ret = CountTile(js)
-		case "items":
-			ret = ItemsTile(js)
+		# case "items":
+		# 	ret = ItemsTile(js)
 		case "set":
 			ret = TileSet(js)
 		case "all":

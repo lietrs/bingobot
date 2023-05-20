@@ -649,10 +649,15 @@ async def bingo_teams_createapprovechannel(ctx: discord.ext.commands.Context, au
 
 	brd = board.load(ctx.guild)
 
+	# Todo: Should really be nested correctly, this depth limits. 
 	for sl, t in brd.tiles.items():
 		if isinstance(t, tiles.TileSet):
 			for sl2, t2 in t.subtiles.items():
-				await chan.send(f"[{teamSlug}:{sl}.{sl2}] {t2.name}")
+				if isinstance(t2, tiles.TileSet):
+					for sl3, t3 in t2.subtiles.items():
+						await chan.send(f"[{teamSlug}:{sl}.{sl2}.{sl3}] {t3.name}")
+				else:
+					await chan.send(f"[{teamSlug}:{sl}.{sl2}] {t2.name}")
 		else:
 			await chan.send(f"[{teamSlug}:{sl}] {t.name}")
 
