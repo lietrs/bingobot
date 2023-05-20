@@ -645,7 +645,7 @@ async def bingo_teams_createapprovechannel(ctx: discord.ext.commands.Context, au
 		ownerRole: discord.PermissionOverwrite(read_messages=True)
 	}
 
-	chan = await ctx.guild.create_text_channel(discordbingo.names.teamApproval(teamSlug), category=cat)
+	chan = await ctx.guild.create_text_channel(discordbingo.names.teamApproval(teamSlug), category=cat, overwrites=overwrites)
 
 	brd = board.load(ctx.guild)
 
@@ -655,81 +655,6 @@ async def bingo_teams_createapprovechannel(ctx: discord.ext.commands.Context, au
 				await chan.send(f"[{teamSlug}:{sl}.{sl2}] {t2.name}")
 		else:
 			await chan.send(f"[{teamSlug}:{sl}] {t.name}")
-
-
-async def isBingoTaskApproved(bot, payload):
-	channel = await bot.fetch_channel(payload.channel_id)
-	message = await channel.fetch_message(payload.message_id)
-
-	# Todo: Check message author is actually bingobot or channel is the mod channel?
-
-	# ignore reactions from bingobot
-	if message.author.id == payload.user_id:
-		return
-
-	# Parse message:
-	f = re.findall("\[(.*?)\:(.*?)\]", message.content)
-	if not f:
-		return
-
-	team = f[0][0]
-	tile = f[0][1]
-
-	# Check user permissions
-	guild = bot.get_guild(payload.guild_id)
-	user = guild.get_member(payload.user_id)
-	perms = discordbingo.userGetPermLevels(user)
-
-	if not commands.PermLevel.Admin in perms and not commands.PermLevel.Mod in perms:
-		await channel.send(f'{user.name} you are not an admin!')
-		return
-
-	if commands.PermLevel.Player in perms:
-		if team == perms[commands.PermLevel.Player]:
-			await channel.send(f'{user.name} you are in that team!')
-			return
-
-
-	teams.addApproval(guild, team, tile, user)
-	await discordbingo.auditLogGuild(guild, user, f"Approved tile {tile} for team {team}")
-
-
-async def isBingoTaskUnapproved(bot, payload):
-	channel = await bot.fetch_channel(payload.channel_id)
-	message = await channel.fetch_message(payload.message_id)
-
-	# Todo: Check message author is actually bingobot
-
-	# ignore reactions from bingobot
-	if message.author.id == payload.user_id:
-		return
-
-	# Parse message:
-	f = re.findall("\[(.*?)\:(.*?)\]", message.content)
-	if not f:
-		return
-
-	team = f[0][0]
-	tile = f[0][1]
-
-	# Check user permissions
-	guild = bot.get_guild(payload.guild_id)
-	user = guild.get_member(payload.user_id)
-	perms = discordbingo.userGetPermLevels(user)
-
-	if not commands.PermLevel.Admin in perms and not commands.PermLevel.Mod in perms:
-		await channel.send(f'{user.name} you are not an admin!')
-		return
-
-	if commands.PermLevel.Player in perms:
-		if team == perms[commands.PermLevel.Player]:
-			await channel.send(f'{user.name} you are in that team!')
-			return
-
-	teams.removeApproval(guild, team, tile, user)
-	await discordbingo.auditLogGuild(guild, user, f"Removed approval on tile {tile} for team {team}")
-
-
 
 
 bingo_commands = {

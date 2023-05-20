@@ -213,6 +213,14 @@ async def addTeam(ctx, teamSlug, teamName):
 	overwrites = {
 		guild.default_role: discord.PermissionOverwrite(read_messages=False),
 		role: discord.PermissionOverwrite(read_messages=True),
+		modRole: discord.PermissionOverwrite(read_messages=False),
+		adminRole: discord.PermissionOverwrite(read_messages=False),
+		ownerRole: discord.PermissionOverwrite(read_messages=True)
+	}
+
+	overwritesSubmissions = {
+		guild.default_role: discord.PermissionOverwrite(read_messages=False),
+		role: discord.PermissionOverwrite(read_messages=True),
 		modRole: discord.PermissionOverwrite(read_messages=True),
 		adminRole: discord.PermissionOverwrite(read_messages=True),
 		ownerRole: discord.PermissionOverwrite(read_messages=True)
@@ -220,7 +228,7 @@ async def addTeam(ctx, teamSlug, teamName):
 
 	category = await guild.create_category(names.teamCategory(teamName), overwrites=overwrites)
 	await guild.create_text_channel(names.teamChat(teamSlug), category=category)
-	await guild.create_text_channel(names.teamSubmissionsChan(teamSlug), category=category)
+	await guild.create_text_channel(names.teamSubmissionsChan(teamSlug), category=category, overwrites=overwritesSubmissions)
 	await guild.create_voice_channel(names.teamVC(teamSlug), category=category)
 
 	await auditLog(ctx, f"Team `{teamSlug}` added")
@@ -242,7 +250,7 @@ async def removeTeam(ctx, teamSlug):
 
 	cat = chat.category
 
-	for ch in [names.teamChat(teamSlug), names.teamVC(teamSlug), names.teamSubmissionsChan(teamSlug)]:
+	for ch in [names.teamChat(teamSlug), names.teamVC(teamSlug), names.teamSubmissionsChan(teamSlug), names.teamApproval(teamSlug)]:
 		chan = discord.utils.get(ctx.guild.channels, name=ch)
 		try:
 			await chan.delete()
@@ -280,7 +288,7 @@ async def renameTeam(ctx, teamSlug, newTeamSlug, newTeamName):
 	# Rename everything
 	await memberRole.edit(name=names.memberRole(newTeamSlug))
 	await captainRole.edit(name=names.captainRole(newTeamSlug))
-	for ch in [names.teamChat, names.teamVC, names.teamSubmissionsChan]:
+	for ch in [names.teamChat, names.teamVC, names.teamSubmissionsChan, name.teamApproval]:
 		chan = discord.utils.get(ctx.guild.channels, name=ch(teamSlug))
 
 		await chan.edit(name=ch(newTeamSlug))
