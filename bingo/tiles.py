@@ -227,6 +227,10 @@ class XPTile(Tile):
 		return super().about() + f"\nXP Requirement: {formatXP(self.required)} {self.skill}"
 
 	def mergeProgress(self, A, B):
+		if not A: 
+			A = "0"
+		if not B:
+			B = "0"
 		return str(int(A)+int(B))
 
 

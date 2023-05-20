@@ -1,7 +1,7 @@
 
 import os
 import json
-from bingo import bingodata, tiles
+from bingo import bingodata, tiles, board
 
 
 class TmTileStatus:

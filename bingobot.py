@@ -107,12 +107,12 @@ async def isBingoTaskUnapproved(bot, payload):
 @bot.event
 async def on_raw_reaction_add(payload):
     if str(payload.emoji) == '✅':
-        await bingobot_admin.isBingoTaskApproved(bot, payload)
+        await isBingoTaskApproved(bot, payload)
 
 @bot.event
 async def on_raw_reaction_remove(payload):
     if str(payload.emoji) == '✅':
-        await bingobot_admin.isBingoTaskUnapproved(bot, payload)
+        await isBingoTaskUnapproved(bot, payload)
 
 
 
@@ -120,7 +120,10 @@ async def on_raw_reaction_remove(payload):
 async def progress(ctx: discord.ext.commands.Context, *args):
     """ Administer the Bingo """
 
-    team = "-".join(ctx.channel.name.split("-")[0:-1])
+    if len(args) >= 1:
+        team = args[0]
+    else:
+        team = "-".join(ctx.channel.name.split("-")[0:-1])
 
     brd = board.load(ctx.guild)
     tmd = teams.getTeamProgress(ctx.guild, team)
