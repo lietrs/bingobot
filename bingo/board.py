@@ -20,6 +20,14 @@ class Board:
 			ret["tiles"][sl] = t.toDict()
 
 		return ret
+	
+	def getXpTileNames(self):
+		ret = []
+		for x in self.tiles:
+			if isinstance(self.tiles[x], tiles.XPTile):
+					ret.append(self.tiles[x].name)
+		return ret
+
 
 	def getTileByName(self, tileName):
 		tns = tileName.split(".")
