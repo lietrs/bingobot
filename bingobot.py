@@ -116,6 +116,8 @@ async def on_raw_reaction_remove(payload):
 
 
 
+
+
 @bot.command()
 async def addteam(ctx: discord.ext.commands.Context, *, teamname):
 
