@@ -108,7 +108,6 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print('------')
-    intervalTasks.start(bot)
 
 @bot.event
 async def on_raw_reaction_add(payload):
@@ -121,12 +120,13 @@ async def on_raw_reaction_remove(payload):
         await isBingoTaskUnapproved(bot, payload)
 
 @tasks.loop(seconds=3600)
-async def intervalTasks(bot):
-    guild = bot.guilds[0]
+async def intervalTasks(guild):
     WOM.WOMg.updateGroup()
     teams.updateAllXPTiles(guild)
     
-
+@bot.command()
+async def startWOM(ctx: discord.ext.commands.Context):
+    intervalTasks.start(ctx.guild)
 
 
 @bot.command()
@@ -144,9 +144,10 @@ async def renameteam(ctx: discord.ext.commands.Context, oldName, newName):
     # Check if owner
     # Check team doesn't already exist
     # think that's it
-
-    await discordbingo.renameTeam(ctx, discordbingo.slugify(oldName), discordbingo.slugify(newName), newName)
-
+    oldSlug = discordbingo.slugify(oldName)
+    newSlug = discordbingo.slugify(newName)
+    await discordbingo.renameTeam(ctx, oldSlug, newSlug, newName)
+    teams.renameTeam(ctx.guild, oldSlug, newSlug)
 
 @bot.command()
 async def addplayers(ctx: discord.ext.commands.Context):
