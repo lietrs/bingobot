@@ -1,7 +1,7 @@
 
 import os
 import json
-from bingo import bingodata, tiles, board
+from bingo import bingodata, tiles, board, discordbingo, WOM
 
 
 class TmTileStatus:
@@ -241,3 +241,16 @@ def addProgress(server, team, tile, progress, link = None):
 def getTeamProgress(server, team):
 	return loadTeamTiles(server, team)
 
+def updateAllXPTiles(server):
+	brd = board.load(server)
+	xpTiles = brd.getXpTileNames()
+	for tnm in xpTiles:
+		xpTile = brd.getTileByName(tnm)
+		skill = xpTile.skill
+		WOM.WOMc.updateData(skill)
+		teams = discordbingo.listTeams(server)
+		for team in teams:
+			tmpData = WOM.WOMc.getTeamData(skill, team.replace("-", " "))
+			totalXP = tmpData.getTotalXP()
+			print(f"{team} has {totalXP} xp gained in {skill}")
+		print("^^^^^^^^^^^^^^^^^^^^")

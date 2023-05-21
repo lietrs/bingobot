@@ -1,13 +1,13 @@
 
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import asyncio
 import logging
 import re 
 import os, json
 
 import bingobot_admin
-from bingo import bingodata, board, teams, discordbingo
+from bingo import bingodata, board, teams, discordbingo, WOM
 import bingo.commands
 
 
@@ -16,7 +16,7 @@ import bingo.commands
 with open("token.txt", 'r') as fp:
     gTOKEN = fp.readline()
 
-gPREFIX = "¬"
+gPREFIX = "<"
 
 
 # Bot
@@ -102,7 +102,13 @@ async def isBingoTaskUnapproved(bot, payload):
 
 
 
-
+@bot.event
+async def on_ready():
+    print('Logged in as')
+    print(bot.user.name)
+    print(bot.user.id)
+    print('------')
+    intervalTasks.start(bot)
 
 @bot.event
 async def on_raw_reaction_add(payload):
@@ -114,7 +120,12 @@ async def on_raw_reaction_remove(payload):
     if str(payload.emoji) == '✅':
         await isBingoTaskUnapproved(bot, payload)
 
-
+@tasks.loop(seconds=3600)
+async def intervalTasks(bot):
+    guild = bot.guilds[0]
+    WOM.WOMg.updateGroup()
+    teams.updateAllXPTiles(guild)
+    
 
 
 
