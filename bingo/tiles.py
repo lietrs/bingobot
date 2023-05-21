@@ -40,8 +40,9 @@ class Tile:
 	def about(self):
 		return f"Name: {self.name}\nDescription: {self.description}\nBoard Location: {self.col},{self.row}"
 
+	def isComplete(self, tmd):
+		return tmd.status == 2
 
-def readSubtiles(sts):
 	def mergeProgress(self, A, B):
 		return A
 
@@ -93,7 +94,7 @@ class TileSet(Tile):
 					countApproved += 1
 			tstrs.append(indentStr(f"{td.name}: {ps}"))
 
-		ret = "\n" + "\n".join(tstrs)
+		ret += "\n" + "\n".join(tstrs)
 		return ret
 
 	def about(self):
@@ -153,6 +154,13 @@ class TileAnyOf(TileSet):
 		ret["type"] = "any"
 		return ret
 
+	def isComplete(self, tm):
+		for brdTileName, brdTile in self.subtiles.items():
+			if brdTileName in tm.subtiles:
+				if brdTile.isComplete(tm.subtiles[brdTileName]):
+					return True
+		return False
+
 
 class TileAllOf(TileSet):
 	
@@ -175,6 +183,16 @@ class TileAllOf(TileSet):
 
 		ret = f"{countApproved} out of {len(self.subtiles)} completed\n" + "\n".join(tstrs)
 		return ret
+
+	def isComplete(self, tm):
+		for brdTileName, brdTile in self.subtiles.items():
+			if brdTileName in tm.subtiles:
+				if not brdTile.isComplete(tm.subtiles[brdTileName]):
+					return False
+			else:
+				return False
+		return True
+
 
 
 def formatXP(amount):

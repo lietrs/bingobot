@@ -59,7 +59,8 @@ def userGetPermLevels(user):
 	# Todo: should make this so it uses the names class
 	for r in user.roles:
 		newpl = commands.PermLevel.Nothing
-		match r.name.split('-'):
+		spl = r.name.split('-')
+		match ["-".join(spl[0:-1]), spl[-1]]:
 			case ["bingo", "admin"]:
 				ret[commands.PermLevel.Admin] = ""
 			case ["bingo", "mod"]:
@@ -209,6 +210,11 @@ def listTeams(guild):
 
 	return ret
 
+def getTeamDisplayName(guild, team):
+	chat = discord.utils.get(guild.channels, name=names.teamChat(team))
+	if not chat:
+		raise NoTeamFound()
+	return chat.category.name[len("Bingo - "):]
 
 
 

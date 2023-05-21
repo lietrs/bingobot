@@ -139,12 +139,13 @@ def addEvidence(server, team, tile, evidence):
 	saveTeamTiles(server, team, tm)
 
 
-def addApproval(server, team, tile, mod, link = None):
-	tm = loadTeamTiles(server, team)
 
-
+def _addApprovalInternal(server, tm, tile, mod, link):
 	t = getTile(tm, tile)
-	t.status = TmTileStatus.Approved 
+
+	if t.status is not TmTileStatus.Approved:
+		t.status = TmTileStatus.Approved
+		# Todo: Action on tile approved.
 
 	if link:
 		t.approved_links.append(link)
@@ -153,6 +154,38 @@ def addApproval(server, team, tile, mod, link = None):
 		t.approved_by.append(str(mod))
 
 	setTile(tm, tile, t)
+
+	if "." in tile:
+		split = tile.split(".")
+		parentTile = ".".join(split[0:-1])
+		subtileApproved(server, tm, parentTile, split[-1])
+
+
+def subtileApproved(server, tm, tile, subtile):
+	brd = board.load(server)
+
+	brdTile = brd.getTileByName(tile)
+	tmTile = getTile(tm, tile)
+
+	if brdTile.isComplete(tmTile):
+		if tmTile.status is not TmTileStatus.Approved:
+			tmTile.status = TmTileStatus.Approved
+			#Todo: Action on tile approved.
+
+			if "." in tile:
+				split = tile.split(".")
+				parentTile = ".".join(split[0:-1])
+				_addApprovalInternal(server, tm, parentTile, "BingoBot", None)
+
+	setTile(tm, tile, tmTile)
+
+
+
+
+def addApproval(server, team, tile, mod, link = None):
+	tm = loadTeamTiles(server, team)
+
+	_addApprovalInternal(server, tm, tile, mod, link)
 
 	saveTeamTiles(server, team, tm)
 

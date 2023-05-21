@@ -127,6 +127,8 @@ async def intervalTasks(bot):
     teams.updateAllXPTiles(guild)
     
 
+
+
 @bot.command()
 async def addteam(ctx: discord.ext.commands.Context, *, teamname):
 
