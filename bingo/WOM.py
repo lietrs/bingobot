@@ -96,11 +96,11 @@ class WOMGroup:
             
 #init
 
-with open("./config/WOM.json", 'r') as f:
-    WOMjson = json.load(f)
-    WOMid = WOMjson['competition id']
-    WOMgid = WOMjson['group id']
+# with open("./config/WOM.json", 'r') as f:
+#     WOMjson = json.load(f)
+#     WOMid = WOMjson['competition id']
+#     WOMgid = WOMjson['group id']
 
-WOMg = WOMGroup(WOMgid)
-WOMc = WOMcomp(WOMid)
+# WOMg = WOMGroup(WOMgid)
+# WOMc = WOMcomp(WOMid)
 

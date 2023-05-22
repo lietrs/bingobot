@@ -301,7 +301,7 @@ async def bingo_teams_progress(ctx: discord.ext.commands.Context, auth, args):
 
 	tstrs = []
 
-	for sl,td in brd.tiles.items():
+	for sl,td in brd.subtiles.items():
 		ps = "Not started"
 		if sl in tmd:
 			ps = td.progressString(tmd[sl])
@@ -329,11 +329,52 @@ async def bingo_tiles_list(ctx: discord.ext.commands.Context, auth, args):
 
 	brd = board.load(ctx.guild)
 
-	retstr = f"{len(brd.tiles)} tile(s):"
-	for sl, t in brd.tiles.items():
+	retstr = f"{len(brd.subtiles)} tile(s):"
+	for sl, t in brd.subtiles.items():
 		retstr += f"\n[{sl}] {t.basicString()}"
 
 	await ctx.send(retstr)
+
+
+async def bingo_tiles_list_xp(ctx: discord.ext.commands.Context, auth, args):
+	""" List bingo XP tiles 
+
+	Usage: !bingo tiles list xp"""
+
+	brd = board.load(ctx.guild)
+	xptiles = brd.getXpTiles()
+
+	retstr = f"{len(xptiles)} tile(s):"
+	for sl in xptiles:
+		retstr += f"\n[{sl}] {brd.getTileByName(sl).basicString()}"
+
+	await ctx.send(retstr)
+
+
+async def bingo_tiles_list_count(ctx: discord.ext.commands.Context, auth, args):
+	""" List bingo Count tiles 
+
+	Usage: !bingo tiles list count"""
+
+	brd = board.load(ctx.guild)
+	cntiles = brd.getCountTiles()
+
+	retstr = f"{len(cntiles)} tile(s):"
+	for sl in cntiles:
+		retstr += f"\n[{sl}] {brd.getTileByName(sl).basicString()}"
+
+	await ctx.send(retstr)
+
+
+async def bingo_tiles_find_description(ctx: discord.ext.commands.Context, auth, args):
+	""" Find a bingo tile by description 
+
+	Usage: !bingo tiles find description DESCRIPTION"""
+
+	brd = board.load(ctx.guild)
+	tln = brd.findTileByDescription(args[0])
+
+	await ctx.send(f"\n[{tln}] {brd.getTileByName(tln).basicString()}")
 
 
 async def bingo_tiles_add(ctx: discord.ext.commands.Context, auth, args):
@@ -650,7 +691,7 @@ async def bingo_teams_createapprovechannel(ctx: discord.ext.commands.Context, au
 	brd = board.load(ctx.guild)
 
 	# Todo: Should really be nested correctly, this depth limits. 
-	for sl, t in brd.tiles.items():
+	for sl, t in brd.subtiles.items():
 		if isinstance(t, tiles.TileSet):
 			for sl2, t2 in t.subtiles.items():
 				if isinstance(t2, tiles.TileSet):
@@ -688,7 +729,11 @@ bingo_commands = {
 	}),
 	"tiles": (commands.PermLevel.Mod, {
 		"": bingo_tiles,
-		"list": bingo_tiles_list,
+		"list": {
+			"": bingo_tiles_list,
+			"xp": bingo_tiles_list_xp,
+			"count": bingo_tiles_list_count
+		},
 		"about": bingo_tiles_about,
 		"add": (commands.PermLevel.Admin, {
 			"basic": bingo_tiles_add,
@@ -698,6 +743,10 @@ bingo_commands = {
 			"any": bingo_tiles_add_any,
 			"all": bingo_tiles_add_all
 		}),
+		"find": {
+			"": bingo_tiles,
+			"description": bingo_tiles_find_description
+		},
 		"approve": bingo_tiles_approve,
 		"setprogress": bingo_tiles_setprogress,
 		"addprogress": bingo_tiles_addprogress,

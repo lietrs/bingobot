@@ -16,7 +16,7 @@ import bingo.commands
 with open("token.txt", 'r') as fp:
     gTOKEN = fp.readline()
 
-gPREFIX = "<"
+gPREFIX = "¬"
 
 
 # Bot
@@ -128,82 +128,148 @@ async def intervalTasks(guild):
 async def startWOM(ctx: discord.ext.commands.Context):
     intervalTasks.start(ctx.guild)
 
+    # count_tasks = [
+    #     "die",
+    #     [
+    #         "troublewars.tb",
+    #         "troubleware.cw"
+    #     ]
+    # ]
+
+class TaskView(discord.ui.View):
+    def __init__(self, guild, teamName, count_tasks):
+        super().__init__()
+        self.count_tasks = count_tasks
+        self.guild = guild
+        self.teamName = teamName
+
+        self.task_index = 0
+        self.subsection_index = 0
+
+        self.subsection_button_disabled = True  # Initially disable the "Next Subsection" button
+
+    def taskKey(self):
+        print(self.count_tasks)
+        section_key = self.count_tasks[self.task_index]
+        if isinstance(section_key, list):
+            task_key = section_key[self.subsection_index]
+        else:
+            task_key = section_key
+
+    def update(self):
+        brd = board.load(self.guild)
+        task = brd.getTileByName(self.taskKey())
+        button_label = task.name
+
+        # Enable/disable the "Next Subsection" button based on the number of subsections
+        self.subsection_button_disabled = not isinstance(self.count_tasks[self.task_index], list)
+
+
+    @discord.ui.button(label="Next Section")
+    async def next_task(self, button: discord.ui.Button, interaction: discord.Interaction):
+        self.task_index = (self.task_index + 1) % len(self.count_tasks)
+        self.subsection_index = 0  # Reset the subsection index when switching tasks
+
+        self.update()
+        embed = self.create_embed()
+        await interaction.response.edit_message(content=None, embed=embed, view=self)
+
+
+    @discord.ui.button(label="Next Subsection", disabled=True)  # Initially disable the button
+    async def next_subsection(self, button: discord.ui.Button, interaction: discord.Interaction):
+
+        self.subsection_index = (self.subsection_index + 1) % len(self.count_tasks[self.task_index])
+        embed = self.create_embed()
+        await interaction.response.edit_message(content=None, embed=embed, view=self)
+
+    @discord.ui.button(label="Add Amount")
+    async def add_amount(self, button: discord.ui.Button, interaction: discord.Interaction):
+        
+        task_key = self.taskKey()
+
+        try:
+            message = await interaction.channel.send("Enter the value to add to the amount:")
+            response = await bot.wait_for("message", check=lambda m: m.author == interaction.user and m.channel == interaction.channel)
+            value = int(response.content)
+
+            teams.addProgress(self.guild, self.teamName, task_key, str(value))
+
+            embed = self.create_embed()
+            await interaction.response.edit_message(content=None, embed=embed, view=self)
+            await message.delete()
+            await response.delete()
+            await interaction.followup.send(f"Added {value} to the amount.")
+        except ValueError:
+            await interaction.followup.send("Invalid input. Please enter a valid number.")
+
+    def create_embed(self):
+        brd = board.load(self.guild)
+        tm = teams.loadTeamTiles(self.guild, self.teamName)
+
+        task_key = self.taskKey()
+        task = brd.getTileByName(task_key)
+        t = teams.getTile(tm, task_key)
+
+        if isinstance(self.count_tasks[self.task_index], list):
+            section_key = task_key.split(".")[0]
+            section_task = brd.getTileByName(section_key)
+
+            embed = discord.Embed(title="Count Task", description=section_task.name, color=discord.Color.green())
+            embed.add_field(name="Description", value=section_task.description, inline=False)
+
+            subcounter_description = f"**Subcounter:**\n{task.name}:\n"
+            embed.add_field(name="\u200b", value=subcounter_description, inline=False)
+            self.next_subsection.disabled = False
+        else:
+            embed = discord.Embed(title="Count Task", description=task.name, color=discord.Color.green())
+            embed.add_field(name="Description", value=task.description, inline=False)
+            self.next_subsection.disabled = True
+
+        embed.add_field(name="Goal", value=task.required)
+        embed.add_field(name="Progress", value=t.progress)
+
+        return embed
+
+
+
 
 @bot.command()
-async def addteam(ctx: discord.ext.commands.Context, *, teamname):
-
-    # Check if owner
-    # Check team doesn't already exist
-    # think that's it
-
-    await discordbingo.addTeam(ctx, discordbingo.slugify(teamname), teamname)
-
-@bot.command()
-async def renameteam(ctx: discord.ext.commands.Context, oldName, newName):
-
-    # Check if owner
-    # Check team doesn't already exist
-    # think that's it
-    oldSlug = discordbingo.slugify(oldName)
-    newSlug = discordbingo.slugify(newName)
-    await discordbingo.renameTeam(ctx, oldSlug, newSlug, newName)
-    teams.renameTeam(ctx.guild, oldSlug, newSlug)
-
-@bot.command()
-async def addplayers(ctx: discord.ext.commands.Context):
-    file= os.path.join(bingodata._serverDir(ctx.guild), "allplayers.json")
-    if os.path.exists(file):
-        with open(file, "r") as f:
-            d = json.load(f)
-
-        for team, players in d.items():
-            print(f"Add team {team}")
-            teamslug = discordbingo.slugify(team)
-            await discordbingo.addTeam(ctx, teamslug, team)
-
-            for player in players:
-                user = ctx.guild.get_member_named(player)
-                if not user:
-                    await ctx.send(f"\tPlayer {player} isn't in the server. Please add {teamslug}-member permission manually")
-                else:
-                    print(f"\tAdding player {user.name}")
-                    await discordbingo.addPlayer(ctx, teamslug, user)
-
-
-@bot.command()
-async def startbingo(ctx: discord.ext.commands.Context):
-
-    # check if owner
-
-    teams = discordbingo.listTeams(ctx.guild)
-
-    for team in teams:
-        await bingobot_admin.bingo_teams_createapprovechannel(ctx, None, [team])
-
-
-
-
-@bot.command()
-async def progress(ctx: discord.ext.commands.Context, *args):
-    """ Administer the Bingo """
-
-    if len(args) >= 1:
-        team = args[0]
-    else:
-        team = "-".join(ctx.channel.name.split("-")[0:-1])
+async def setup(ctx, team):
 
     brd = board.load(ctx.guild)
-    tmd = teams.getTeamProgress(ctx.guild, team)
+    allcounts = brd.getCountTiles()
 
-    tstrs = []
+    # Split into sections
+    # count_tasks = {}
+    # for n in allcounts:
+    #     if "." in n:
+    #         group = n.split(".")[0]
+    #         if group in count_tasks:
+    #             count_tasks[group].append(n)
+    #         else:
+    #             count_tasks[group] = [n]
+    #     else:
+    #         count_tasks[n] = []
 
-    for sl,td in brd.tiles.items():
-        ps = "0"
-        if sl in tmd:
-            ps = str(tmd[sl].status)
-        tstrs.append(f"{td.row},{td.col}: {ps}")
+    count_tasks = [
+        "die",
+        [
+            "troublewars.tb",
+            "troublewars.cw"
+        ]
+    ]
 
-    await ctx.send("\n".join(tstrs))
+
+    if count_tasks:
+        view = TaskView(ctx.guild, team, count_tasks)
+        embed = view.create_embed()
+        message = await ctx.send(embed=embed, view=view)
+        await view.wait()
+
+    else:
+        await ctx.send("No count tasks available.")
+
+
 
 
 @bot.command()
