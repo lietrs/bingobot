@@ -315,6 +315,10 @@ class CountTile(Tile):
 		return super().about() + f"\nRequirement: {self.required}"
 
 	def mergeProgress(self, A, B):
+		if A == "":
+			A = "0"
+		if B == "":
+			B = "0"
 		return str(int(A)+int(B))
 
 # class ItemsTile(Tile):

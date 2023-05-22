@@ -127,114 +127,149 @@ async def on_raw_reaction_remove(payload):
 #     teams.updateAllXPTiles(guild)
 
 
-# async def setup(ctx,bot, FileName):
-#     FileName = FileName + ".json"
-#     with open(FileName) as file:
-#         data = json.load(file)
+    # count_tasks = [
+    #     "die",
+    #     [
+    #         "troublewars.tb",
+    #         "troubleware.cw"
+    #     ]
+    # ]
 
-#     count_tasks = [task for task in data if task['type'] in ['count', 'set count']]
+class TaskView(discord.ui.View):
+    def __init__(self, guild, teamName, count_tasks):
+        super().__init__()
+        self.count_tasks = count_tasks
+        self.guild = guild
+        self.teamName = teamName
 
-#     if count_tasks:
-#         task_index = 0
-#         task = count_tasks[task_index]
-#         button_label = task['name']
+        self.task_index = 0
+        self.subsection_index = 0
 
-#         class TaskView(discord.ui.View):
-#             def __init__(self):
-#                 super().__init__()
-#                 self.task_index = task_index
-#                 self.subsection_index = 0
-#                 self.subsection_button_disabled = True  # Initially disable the "Next Subsection" button
+        self.subsection_button_disabled = True  # Initially disable the "Next Subsection" button
 
-#             @discord.ui.button(label=button_label)
-#             async def next_task(self, button: discord.ui.Button, interaction: discord.Interaction):
-#                 self.task_index = (self.task_index + 1) % len(count_tasks)
-#                 task = count_tasks[self.task_index]
-#                 button.label = task['name']
-#                 self.subsection_index = 0  # Reset the subsection index when switching tasks
+    def taskKey(self):
+        print(self.count_tasks)
+        section_key = self.count_tasks[self.task_index]
+        if isinstance(section_key, list):
+            task_key = section_key[self.subsection_index]
+        else:
+            task_key = section_key
 
-#                 # Enable/disable the "Next Subsection" button based on the number of subsections
-#                 self.subsection_button_disabled = len(task.get('type specific', {}).get('subcounter', [])) <= 1
+        return task_key
 
-#                 embed = self.create_embed(task)
-#                 await interaction.response.edit_message(content=None, embed=embed, view=self)
 
-#             @discord.ui.button(label="Next Subsection", disabled=True)  # Initially disable the button
-#             async def next_subsection(self, button: discord.ui.Button, interaction: discord.Interaction):
-#                 task = count_tasks[self.task_index]
-#                 subcounter = task.get('type specific', {}).get('subcounter', [])
-#                 self.subsection_index = (self.subsection_index + 1) % len(subcounter)
-#                 embed = self.create_embed(task)
-#                 await interaction.response.edit_message(content=None, embed=embed, view=self)
+    def update(self):
+        brd = board.load(self.guild)
+        task = brd.getTileByName(self.taskKey())
+        button_label = task.name
 
-#             @discord.ui.button(label="Add Amount")
-#             async def add_amount(self, button: discord.ui.Button, interaction: discord.Interaction):
-#                 task = count_tasks[self.task_index]
-#                 type_specific = task.get('type specific', {})
-#                 subcounter = type_specific.get('subcounter', [])
-#                 if subcounter:
-#                     current_subsection = subcounter[self.subsection_index]
-#                     amount = current_subsection.get('amount', 0)
-#                     try:
-#                         message = await interaction.channel.send("Enter the value to add to the amount:")
-#                         response = await bot.wait_for("message", check=lambda m: m.author == interaction.user and m.channel == interaction.channel)
-#                         value = int(response.content)
-#                         amount += value
-#                         current_subsection['amount'] = amount
-#                         write_data_to_file(data, FileName)  # Write the updated data to the file
-#                         embed = self.create_embed(task)
-#                         await interaction.response.edit_message(content=None, embed=embed, view=self)
-#                         await message.delete()
-#                         await response.delete()
-#                         await interaction.followup.send(f"Added {value} to the amount.")
-#                     except ValueError:
-#                         await interaction.followup.send("Invalid input. Please enter a valid number.")
-#                 else:
-#                     amount = type_specific.get('amount', 0)
-#                     try:
-#                         message = await interaction.channel.send("Enter the value to add to the amount:")
-#                         response = await bot.wait_for("message", check=lambda m: m.author == interaction.user and m.channel == interaction.channel)
-#                         value = int(response.content)
-#                         amount += value
-#                         type_specific['amount'] = amount
-#                         write_data_to_file(data, FileName)  # Write the updated data to the file
-#                         embed = self.create_embed(task)
-#                         await interaction.response.edit_message(content=None, embed=embed, view=self)
-#                         await message.delete()
-#                         await response.delete()
-#                         await interaction.followup.send(f"Added {value} to the amount.")
-#                     except ValueError:
-#                         await interaction.followup.send("Invalid input. Please enter a valid number.")
+        # Enable/disable the "Next Subsection" button based on the number of subsections
+        self.subsection_button_disabled = not isinstance(self.count_tasks[self.task_index], list)
 
-#             def create_embed(self, task):
-#                 embed = discord.Embed(title="Count Task", description=task['name'], color=discord.Color.green())
-#                 embed.add_field(name="Description", value=task['description'], inline=False)
 
-#                 type_specific = task.get('type specific', {})
-#                 if 'goal' in type_specific:
-#                     embed.add_field(name="Goal", value=type_specific['goal'])
-#                 if 'amount' in type_specific:
-#                     embed.add_field(name="Amount", value=type_specific['amount'])
+    @discord.ui.button(label="Next Section")
+    async def next_task(self, button: discord.ui.Button, interaction: discord.Interaction):
+        self.task_index = (self.task_index + 1) % len(self.count_tasks)
+        self.subsection_index = 0  # Reset the subsection index when switching tasks
 
-#                 subcounter = type_specific.get('subcounter', [])
-#                 if len(subcounter) > 0:
-#                     current_subsection = subcounter[self.subsection_index]
-#                     subcounter_description = f"**Subcounter:**\n{current_subsection.get('set', '')}:\nGoal: {current_subsection.get('goal', '')}\nAmount: {current_subsection.get('amount', '')}\n\n"
-#                     embed.add_field(name="\u200b", value=subcounter_description, inline=False)
+        self.update()
+        embed = self.create_embed()
+        await interaction.response.edit_message(content=None, embed=embed, view=self)
 
-#                     self.next_subsection.disabled = False
-#                 else:
-#                     self.next_subsection.disabled = True
 
-#                 return embed
+    @discord.ui.button(label="Next Subsection", disabled=True)  # Initially disable the button
+    async def next_subsection(self, button: discord.ui.Button, interaction: discord.Interaction):
 
-#         view = TaskView()
-#         embed = view.create_embed(task)
-#         message = await ctx.send(embed=embed, view=view)
-#         await view.wait()
+        self.subsection_index = (self.subsection_index + 1) % len(self.count_tasks[self.task_index])
+        embed = self.create_embed()
+        await interaction.response.edit_message(content=None, embed=embed, view=self)
 
-#     else:
-#         await ctx.send("No count tasks available.")
+    @discord.ui.button(label="Add Amount")
+    async def add_amount(self, button: discord.ui.Button, interaction: discord.Interaction):
+        
+        task_key = self.taskKey()
+
+        try:
+            message = await interaction.channel.send("Enter the value to add to the amount:")
+            response = await bot.wait_for("message", check=lambda m: m.author == interaction.user and m.channel == interaction.channel)
+            value = int(response.content)
+
+            teams.addProgress(self.guild, self.teamName, task_key, str(value))
+
+            embed = self.create_embed()
+            await interaction.response.edit_message(content=None, embed=embed, view=self)
+            await message.delete()
+            await response.delete()
+            await interaction.followup.send(f"Added {value} to the amount.")
+        except ValueError:
+            await interaction.followup.send("Invalid input. Please enter a valid number.")
+
+    def create_embed(self):
+        brd = board.load(self.guild)
+        tm = teams.loadTeamTiles(self.guild, self.teamName)
+
+        task_key = self.taskKey()
+        task = brd.getTileByName(task_key)
+        t = teams.getTile(tm, task_key)
+
+        if isinstance(self.count_tasks[self.task_index], list):
+            section_key = task_key.split(".")[0]
+            section_task = brd.getTileByName(section_key)
+
+            embed = discord.Embed(title="Count Task", description=section_task.name, color=discord.Color.green())
+            embed.add_field(name="Description", value=section_task.description, inline=False)
+
+            subcounter_description = f"**Subcounter:**\n{task.name}:\n"
+            embed.add_field(name="\u200b", value=subcounter_description, inline=False)
+            self.next_subsection.disabled = False
+        else:
+            embed = discord.Embed(title="Count Task", description=task.name, color=discord.Color.green())
+            embed.add_field(name="Description", value=task.description, inline=False)
+            self.next_subsection.disabled = True
+
+        embed.add_field(name="Goal", value=task.required)
+        embed.add_field(name="Progress", value=t.progress)
+
+        return embed
+
+
+
+
+@bot.command()
+async def setup(ctx, team):
+
+    brd = board.load(ctx.guild)
+    allcounts = brd.getCountTiles()
+
+    # Split into sections
+    # count_tasks = {}
+    # for n in allcounts:
+    #     if "." in n:
+    #         group = n.split(".")[0]
+    #         if group in count_tasks:
+    #             count_tasks[group].append(n)
+    #         else:
+    #             count_tasks[group] = [n]
+    #     else:
+    #         count_tasks[n] = []
+
+    count_tasks = [
+        "die",
+        [
+            "troublewars.tb",
+            "troublewars.cw"
+        ]
+    ]
+
+
+    if count_tasks:
+        view = TaskView(ctx.guild, team, count_tasks)
+        embed = view.create_embed()
+        message = await ctx.send(embed=embed, view=view)
+        await view.wait()
+
+    else:
+        await ctx.send("No count tasks available.")
 
 
 
