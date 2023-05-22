@@ -4,64 +4,21 @@ import json
 from bingo import bingodata, tiles
 
 
-class Board:
-	tiles = {}
-
+class Board(tiles.TileSet):
 	def __init__(self, d = None):
-		self.tiles = {}
+		self.subtiles = {}
 		if d:
 			for sl, t in d["tiles"].items():
-				self.tiles[sl] = tiles.tileFromJson(t)
+				self.subtiles[sl] = tiles.tileFromJson(t)
 
 	def toDict(self):
 		ret = {}
 		ret["tiles"] = {}
-		for sl, t in self.tiles.items():
+		for sl, t in self.subtiles.items():
 			ret["tiles"][sl] = t.toDict()
 
 		return ret
-	
-	def getXpTileNames(self):
-		ret = []
-		for x in self.tiles:
-			if isinstance(self.tiles[x], tiles.XPTile):
-					ret.append(self.tiles[x].name)
-		return ret
 
-
-	def getTileByName(self, tileName):
-		tns = tileName.split(".")
-		if len(tns) > 1:
-			if isinstance(self.tiles[tns[0]], tiles.TileSet):
-				return self.tiles[tns[0]].getTileByName(".".join(tns[1:]))
-			else:
-				# Error: Tried to access subtile, not a tile set
-				return None
-		else:
-			return self.tiles[tns[0]]
-
-	def setTileByName(self, tileName, tile):
-		tns = tileName.split(".")
-		if len(tns) > 1:
-			if isinstance(self.tiles[tns[0]], tiles.TileSet):
-				self.tiles[tns[0]].setTileByName(".".join(tns[1:]), tile)
-			else:
-				# Error: Tried to access subtile, not a tile set
-				return None
-		else:
-			self.tiles[tns[0]] = tile
-
-
-	def removeTile(self, tileName):
-		tns = tileName.split(".")
-		if len(tns) > 1:
-			if isinstance(self.tiles[tns[0]], tiles.TileSet):
-				self.tiles[tns[0]].removeTile(".".join(tns[1:]))
-			else:
-				# Error: Tried to access subtile, not a tile set
-				return None
-		else:
-			del self.tiles[tns[0]]
 
 
 
@@ -76,6 +33,8 @@ def load(server):
 			d = json.load(f)
 
 		ret = Board(d)
+	else:
+		ret = Board(None)
 
 	return ret
 

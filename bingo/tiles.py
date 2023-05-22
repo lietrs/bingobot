@@ -145,6 +145,33 @@ class TileSet(Tile):
 				return None
 		else:
 			del self.subtiles[tns[0]]
+	
+	def getTilesOfType(self, tileClass, path = ""):
+		ret = []
+		for stn, stt in self.subtiles.items():
+			if isinstance(stt, tileClass):
+				ret.append(path + stn)
+			elif isinstance(stt, TileSet):
+				ret.extend(stt.getTilesOfType(tileClass, path + stn + "."))
+		return ret
+
+	def getXpTiles(self):
+		return self.getTilesOfType(XPTile)
+	
+	def getCountTiles(self):
+		return self.getTilesOfType(CountTile)
+
+
+	def findTileByDescription(self, description):
+		for stn, stt in self.subtiles.items():
+			if stt.description == description:
+				return stn
+			elif isinstance(stt, TileSet):
+				ret = stt.findTileByDescription(description)
+				if ret:
+					return stn + "." + ret
+		return None
+
 
 
 class TileAnyOf(TileSet):
