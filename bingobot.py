@@ -108,7 +108,6 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print('------')
-    # intervalTasks.start(bot)
 
 @bot.event
 async def on_raw_reaction_add(payload):
@@ -120,12 +119,14 @@ async def on_raw_reaction_remove(payload):
     if str(payload.emoji) == '✅':
         await isBingoTaskUnapproved(bot, payload)
 
-# @tasks.loop(seconds=3600)
-# async def intervalTasks(bot):
-#     guild = bot.guilds[0]
-#     WOM.WOMg.updateGroup()
-#     teams.updateAllXPTiles(guild)
-
+@tasks.loop(seconds=3600)
+async def intervalTasks(guild):
+    WOM.WOMg.updateGroup()
+    teams.updateAllXPTiles(guild)
+    
+@bot.command()
+async def startWOM(ctx: discord.ext.commands.Context):
+    intervalTasks.start(ctx.guild)
 
     # count_tasks = [
     #     "die",
@@ -154,9 +155,6 @@ class TaskView(discord.ui.View):
             task_key = section_key[self.subsection_index]
         else:
             task_key = section_key
-
-        return task_key
-
 
     def update(self):
         brd = board.load(self.guild)

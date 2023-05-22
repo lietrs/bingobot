@@ -279,7 +279,7 @@ class XPTile(Tile):
 			A = "0"
 		if not B:
 			B = "0"
-		return str(int(A)+int(B))
+		return str(max(int(A),int(B)))
 
 
 class CountTile(Tile):

@@ -122,7 +122,7 @@ def renameTeam(server, old, new):
 	tls = loadTeamTiles(server, old)
 	saveTeamTiles(server, new, tls)
 	try:
-		os.remove(bingodata._teamFile(server, team))
+		os.remove(bingodata._teamFile(server, old))
 	except:
 		pass
 
@@ -250,7 +250,8 @@ def updateAllXPTiles(server):
 		WOM.WOMc.updateData(skill)
 		teams = discordbingo.listTeams(server)
 		for team in teams:
-			tmpData = WOM.WOMc.getTeamData(skill, team.replace("-", " "))
+			tmpData = WOM.WOMc.getTeamData(skill, discordbingo.getTeamDisplayName(server, team))
 			totalXP = tmpData.getTotalXP()
+			addProgress(server, team, tnm, totalXP)
 			print(f"{team} has {totalXP} xp gained in {skill}")
 		print("^^^^^^^^^^^^^^^^^^^^")
