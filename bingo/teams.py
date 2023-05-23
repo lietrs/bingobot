@@ -137,9 +137,12 @@ def _setProgress(brd, tmData, tileName, progress):
 	if tld.isComplete(t): 
 		if t.status != ApproveStatus.Approved:
 			_approveTile(brd, tmData, tileName, "BingoBot")
+			return True
 	else:
 		if t.status == ApproveStatus.Approved:
 			_unapproveTile(brd, tmData, tileName, "BingoBot")
+
+	return False
 
 
 def _addProgress(brd, tmData, tileName, progress):

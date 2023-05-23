@@ -112,6 +112,14 @@ async def auditLog(ctx, message):
 	await auditch.send(m)
 
 
+
+async def sendToTeam(guild, team, message):
+	teamch = discord.utils.get(guild.channels, name=names.teamChat(team))
+
+	await teamch.send(message)
+
+
+
 def identifyPlayer(ctx, pname):
 	p = None 
 

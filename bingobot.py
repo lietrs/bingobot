@@ -123,8 +123,8 @@ async def on_raw_reaction_remove(payload):
 
 
 
-        
-def updateAllXPTiles(server):
+
+async def updateAllXPTiles(server):
     brd = board.load(server)
     xpTiles = brd.getXpTiles()
     for tnm in xpTiles:
@@ -133,7 +133,8 @@ def updateAllXPTiles(server):
         WOM.WOMc.updateData(skill)
 
         for team in discordbingo.listTeams(server):
-            tmpData = WOM.WOMc.getTeamData(skill, discordbingo.getTeamDisplayName(server, team))
+            teamName = discordbingo.getTeamDisplayName(server, team)
+            tmpData = WOM.WOMc.getTeamData(skill, teamName)
 
             if not tmpData:
                 print(f"Missing data for {team} in {skill}, ignoring")
@@ -142,8 +143,11 @@ def updateAllXPTiles(server):
             totalXP = tmpData.getTotalXP()
 
             tmData = teams.loadTeamBoard(server, team)
-            teams._setProgress(brd, tmData, tnm, totalXP)
+            newApproved = teams._setProgress(brd, tmData, tnm, totalXP)
             teams.saveTeamBoard(server, team, tmData)
+
+            if newApproved:
+                await discordbingo.sendToTeam(server, team, f"Congratulations {teamName} on completing the {skill} tile!")
 
             print(f"{team} has {totalXP} xp gained in {skill}")
         print("^^^^^^^^^^^^^^^^^^^^")
@@ -151,7 +155,7 @@ def updateAllXPTiles(server):
 @tasks.loop(seconds=3600)
 async def intervalTasks(guild):
     WOM.WOMg.updateGroup()
-    updateAllXPTiles(guild)
+    await updateAllXPTiles(guild)
     
 @bot.command()
 async def startWOM(ctx: discord.ext.commands.Context):
@@ -161,7 +165,7 @@ async def startWOM(ctx: discord.ext.commands.Context):
 @bot.command()
 async def updateWOM(ctx: discord.ext.commands.Context):
     # WOM.WOMg.updateGroup()
-    updateAllXPTiles(ctx.guild)
+    await updateAllXPTiles(ctx.guild)
 
 
 
