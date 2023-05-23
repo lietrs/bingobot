@@ -59,7 +59,6 @@ async def mvp(ctx: discord.ext.commands.Context, *args):
 
     BingoComp = WOM.WOMc
     brd = board.load(ctx.guild)
-    tmd = teams.loadTeamBoard(ctx.guild, teamName)
 
     if len(args):
         skill = args[0]
@@ -103,6 +102,16 @@ async def xp(ctx: discord.ext.commands.Context, *args):
             await ctx.send("\n".join(ret))
 
 
+@bot.command()
+async def progress(ctx: discord.ext.commands.Context, *args):
+
+    teamName = isTeamChannel(ctx)
+    if teamName == "":
+        return # Not in a team channel
+
+    stbrd = teams.boardString(ctx.guild, teamName)
+
+    await ctx.send("```" + stbrd + "```")
 
 
 
@@ -277,10 +286,15 @@ async def intervalTasks(guild):
     
 @bot.command()
 async def startWOM(ctx: discord.ext.commands.Context):
+    if not discordbingo.ctxIsAdmin(ctx):
+        return
     intervalTasks.start(ctx.guild)
 
 @bot.command()
 async def updateWOM(ctx: discord.ext.commands.Context):
+    if not discordbingo.ctxIsAdmin(ctx):
+        return
+
     # WOM.WOMg.updateGroup()
     await updateAllXPTiles(ctx.guild)
 
@@ -382,6 +396,8 @@ class TaskView(discord.ui.View):
 
 @bot.command()
 async def setup(ctx, team):
+    if not discordbingo.ctxIsMod(ctx):
+        return
 
     brd = board.load(ctx.guild)
     allcounts = brd.getCountTiles()
@@ -414,6 +430,28 @@ async def setup(ctx, team):
     else:
         await ctx.send("No count tasks available.")
 
+
+
+
+
+
+@bot.command()
+async def renameteam(ctx, oldTeam, newTeam):
+
+    if not discordbingo.ctxIsAdmin(ctx):
+        return
+
+    oldSlug = discordbingo.slugify(oldTeam)
+    newSlug = discordbingo.slugify(newTeam)
+
+    discordbingo.renameTeam(ctx, oldSlug, newSlug, newTeam)
+    teams.renameTeam(oldSlug, newSlug)
+
+
+
+
+
+
 @bot.command()
 async def aaa(ctx):
     """ testing """
@@ -426,6 +464,9 @@ async def aaa(ctx):
 @bot.command()
 async def bingo(ctx: discord.ext.commands.Context, *args):
     """ Administer the Bingo """
+
+    if not discordbingo.ctxIsAdmin(ctx):
+        return
 
     await bingobot_admin.command(ctx, args) 
 

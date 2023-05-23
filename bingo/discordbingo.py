@@ -107,6 +107,16 @@ def ctxIsAdmin(ctx):
 
     return True
 
+
+def ctxIsMod(ctx):
+    perms = discordbingo.ctxGetPermLevels(ctx)
+    
+    if not PermLevel.Admin in perms and not PermLevel.Owner in perms and not PermLevel.Mod in perms:
+        return False
+
+    return True
+
+
 async def auditLogGuild(guild, user, message):
 	auditch = discord.utils.get(guild.channels, name=names.auditChannel)
 
