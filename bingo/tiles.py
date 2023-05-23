@@ -1,7 +1,7 @@
 
 import os
 import json
-from bingo import bingodata
+from bingo import bingodata, teamdata
 import math
 
 
@@ -35,13 +35,13 @@ class Tile:
 
 	def progressString(self, tmd):
 		statstr = ["In progress", "Awaiting approval", "Completed!"]
-		return statstr[tmd.status]
+		return statstr[tmd.status()]
 
 	def about(self):
 		return f"Name: {self.name}\nDescription: {self.description}\nBoard Location: {self.col},{self.row}"
 
 	def isComplete(self, tmd):
-		return tmd.status == 2
+		return tmd.status() == teamdata.ApproveStatus.Approved
 
 	def mergeProgress(self, A, B):
 		return A
@@ -81,16 +81,16 @@ class TileSet(Tile):
 
 		return ret
 
-	def progressString(self, tmd):
-		ret = super().progressString(tmd)
+	def progressString(self, tileStatus: teamdata.TileStatus):
+		ret = super().progressString(tileStatus)
 		tstrs = []
 		countApproved = 0
 
 		for sl,td in self.subtiles.items():
 			ps = "Not started"
-			if sl in tmd.subtiles:
-				ps = td.progressString(tmd.subtiles[sl])
-				if tmd.subtiles[sl].status == 2:
+			if sl in tileStatus.subtiles:
+				ps = td.progressString(tileStatus.subtiles[sl])
+				if tileStatus.subtiles[sl].status() == teamdata.ApproveStatus.Approved:
 					countApproved += 1
 			tstrs.append(indentStr(f"{td.name}: {ps}"))
 
@@ -181,10 +181,10 @@ class TileAnyOf(TileSet):
 		ret["type"] = "any"
 		return ret
 
-	def isComplete(self, tm):
+	def isComplete(self, tileStatus: teamdata.TileStatus):
 		for brdTileName, brdTile in self.subtiles.items():
-			if brdTileName in tm.subtiles:
-				if brdTile.isComplete(tm.subtiles[brdTileName]):
+			if brdTileName in tileStatus.subtiles:
+				if brdTile.isComplete(tileStatus.subtiles[brdTileName]):
 					return True
 		return False
 
@@ -196,25 +196,25 @@ class TileAllOf(TileSet):
 		ret["type"] = "all"
 		return ret
 
-	def progressString(self, tmd):
+	def progressString(self, tileStatus: teamdata.TileStatus):
 		tstrs = []
 		countApproved = 0
 
 		for sl,td in self.subtiles.items():
 			ps = "Not started"
-			if sl in tmd.subtiles:
-				ps = td.progressString(tmd.subtiles[sl])
-				if tmd.subtiles[sl].status == 2:
+			if sl in tileStatus.subtiles:
+				ps = td.progressString(tileStatus.subtiles[sl])
+				if tileStatus.subtiles[sl].status() == teamdata.ApproveStatus.Approved:
 					countApproved += 1
 			tstrs.append(indentStr(f"{td.name}: {ps}"))
 
 		ret = f"{countApproved} out of {len(self.subtiles)} completed\n" + "\n".join(tstrs)
 		return ret
 
-	def isComplete(self, tm):
+	def isComplete(self, tileStatus: teamdata.TileStatus):
 		for brdTileName, brdTile in self.subtiles.items():
-			if brdTileName in tm.subtiles:
-				if not brdTile.isComplete(tm.subtiles[brdTileName]):
+			if brdTileName in tileStatus.subtiles:
+				if not brdTile.isComplete(tileStatus.subtiles[brdTileName]):
 					return False
 			else:
 				return False
@@ -261,7 +261,7 @@ class XPTile(Tile):
 		return f"{super().basicString()} ({self.required} {self.skill} xp required)"
 
 	def progressString(self, tmd):
-		if tmd.status > 0:
+		if tmd.status() > 0:
 			return super().progressString(tmd)
 		else:
 			pint = 0
@@ -287,6 +287,8 @@ class XPTile(Tile):
 		if tmd.progress == "":
 			return False
 
+		print(f"trace: {tmd.progress} / {self.required}")
+
 		return int(tmd.progress) >= self.required
 
 
@@ -310,7 +312,7 @@ class CountTile(Tile):
 		return f"{super().basicString()} ({self.required} required)"
 
 	def progressString(self, tmd):
-		if tmd.status > 0:
+		if tmd.status() > 0:
 			return super().progressString(tmd)
 		else:
 			pint = 0
@@ -350,5 +352,7 @@ def tileFromJson(js):
 			ret = TileAllOf(js)
 		case "any":
 			ret = TileAnyOf(js)
+		case _:
+			raise
 
 	return ret

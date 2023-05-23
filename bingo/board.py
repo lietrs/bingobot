@@ -3,7 +3,6 @@ import os
 import json
 from bingo import bingodata, tiles
 
-
 class Board(tiles.TileSet):
 	def __init__(self, d = None):
 		self.subtiles = {}
@@ -20,11 +19,10 @@ class Board(tiles.TileSet):
 		return ret
 
 
-
+# File Loading/Saving
 
 def initFile(server):
 	save(server, Board())
-
 
 def load(server):
 	ret = None
@@ -43,24 +41,24 @@ def save(server, brd):
 		json.dump(brd.toDict(), f)
 
 
+# Tile Functions
+
 def addTile(server, tileName, tile):
 	brd = load(server)
 	brd.setTileByName(tileName, tile)
 	save(server, brd)
-
-
 
 def editTile(server, tileName, tile):
 	brd = load(server)
 	brd.setTileByName(tileName, tile)
 	save(server, brd)
 
-# def renameTile(server, oldSlug, newSlug):
-# 	brd = load(server)
-# 	t = tiles[oldSlug]
-# 	del tiles[oldSlug]
-# 	tiles[newSlug] = t
-# 	save(server, brd)
+def renameTile(server, oldSlug, newSlug):
+	brd = load(server)
+	t = brd.getTileByName(oldSlug)
+	brd.removeTile(oldSlug)
+	brd.setTileByName(newSlug, t)
+	save(server, brd)
 
 def removeTile(server, tile):
 	brd = load(server)

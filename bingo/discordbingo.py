@@ -216,6 +216,13 @@ def getTeamDisplayName(guild, team):
 		raise NoTeamFound()
 	return chat.category.name[len("Bingo - "):]
 
+def isTeamName(guild, team):
+	chat = discord.utils.get(guild.channels, name=names.teamChat(team))
+	if not chat:
+		return False
+	return True
+
+
 
 
 async def addTeam(ctx, teamSlug, teamName):

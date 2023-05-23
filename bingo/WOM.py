@@ -43,7 +43,6 @@ class WOMcomp:
                 return self.DataTeamLists[Line]
 
     
-
 class WOMCompTeamData:
     def __init__(self, rank, teamName, PlayerAmount, TotalXP, AvgXP, MVP, skill):
         self.rank = rank
@@ -96,11 +95,10 @@ class WOMGroup:
             
 #init
 
-# with open("./config/WOM.json", 'r') as f:
-#     WOMjson = json.load(f)
-#     WOMid = WOMjson['competition id']
-#     WOMgid = WOMjson['group id']
+with open("./data/WOM.json", 'r') as f:
+    WOMjson = json.load(f)
+    WOMid = WOMjson['competition id']
+    WOMgid = WOMjson['group id']
 
-# WOMg = WOMGroup(WOMgid)
-# WOMc = WOMcomp(WOMid)
-
+WOMg = WOMGroup(WOMgid)
+WOMc = WOMcomp(WOMid)

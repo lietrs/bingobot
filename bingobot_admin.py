@@ -252,34 +252,6 @@ async def bingo_players_remove(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.message.add_reaction(goodReaction)
 
 
-async def bingo_teams_setcaptain(ctx: discord.ext.commands.Context, auth, args):
-	"""Set the team captain
-
-	Usage: !bingo teams setcaptain TEAM PLAYER
-
-	TEAM - the team name (as at the start of their text channel)
-	PLAYER - A player name. Can tag players, or use just a username, or username#1234"""
-
-	if max(auth.keys()) < commands.PermLevel.Admin:
-		raise discordbingo.PermissionDenied()
-
-	if len(args) < 2:
-		await ctx.send("Usage: !bingo teams setcaptain TEAMNAME PLAYER")
-		return
-
-	team = args[0]
-	player = discordbingo.identifyPlayer(ctx, args[1])
-
-	if not player:
-		await ctx.send(f"Sorry, couldn't find a player `{player}`")
-		return
-
-	async with ctx.typing():
-		await discordbingo.setCaptain(ctx, team, player)
-
-	await ctx.message.add_reaction(goodReaction)
-
-
 async def bingo_teams_progress(ctx: discord.ext.commands.Context, auth, args):
 	"""retrieve details on team progress
 
@@ -297,17 +269,12 @@ async def bingo_teams_progress(ctx: discord.ext.commands.Context, auth, args):
 	team = args[0]
 
 	brd = board.load(ctx.guild)
-	tmd = teams.getTeamProgress(ctx.guild, args[0])
+	tmd = teams.loadTeamBoard(ctx.guild, args[0])
 
 	tstrs = []
 
 	for sl,td in brd.subtiles.items():
-		ps = "Not started"
-		if sl in tmd:
-			ps = td.progressString(tmd[sl])
-		else:
-			ps = td.progressString(teams.TmTile())
-		tstrs.append(f"{td.name}: {ps}")
+		tstrs.append(f"{td.name}: {td.progressString(tmd.getTile(sl))}")
 
 	await ctx.send("\n".join(tstrs))
 
@@ -328,32 +295,9 @@ async def bingo_teams_board(ctx: discord.ext.commands.Context, auth, args):
 
 	team = args[0]
 
-	brd = board.load(ctx.guild)
-	tmd = teams.getTeamProgress(ctx.guild, args[0])
+	ret = teams.boardString(ctx.guild, team)
 
-	tstrs = []
-
-	matrix = [[0]*5 for i in range(5)]
-
-	for sl,td in brd.subtiles.items():
-		# if td.isComplete(teams.getTile(tmd, sl)):
-		# 	matrix[td.row][td.col] = 1
-		if teams.getTile(tmd, sl).status == 2:
-			matrix[td.row][td.col] = 1
-
-	ret = "\n```"
-	for row in matrix:
-		ret += "| "
-		for square in row:
-			if square:
-				ret += "O"
-			else:
-				ret += " "
-			ret += " | "
-		ret += "\n"
-
-
-	await ctx.send(ret + "```")
+	await ctx.send("\n```" + ret + "```")
 
 
 
@@ -572,10 +516,11 @@ async def bingo_tiles_remove(ctx: discord.ext.commands.Context, auth, args):
 async def bingo_tiles_approve(ctx: discord.ext.commands.Context, auth, args):
 	""" Mark bingo tile status 
 
-	Usage: !bingo tiles approve TEAM TILE
+	Usage: !bingo approve TEAM TILE [MOD]
 
 	TEAM - the team name (as at the start of their text channel)
-	TILE - The name of the tile to get information on. For tile names use `!bingo tiles list`"""
+	TILE - The name of the tile to get information on. For tile names use `!bingo tiles list`
+	MOD  - The name of the mod to approve on behalf of (default is message author)"""
 
 	if max(auth.keys()) < commands.PermLevel.Mod:
 		raise discordbingo.PermissionDenied()
@@ -586,12 +531,123 @@ async def bingo_tiles_approve(ctx: discord.ext.commands.Context, auth, args):
 
 	team = args[0]
 	tile = args[1]
+	mod = ctx.author
+	if len(args) > 2:
+		mod = discordbingo.identifyPlayer(ctx, args[2])
 
 	link = ctx.message.id
 
-	teams.addApproval(ctx.guild, team, tile, str(ctx.author), link)
+	teams.approveTile(ctx.guild, team, tile, str(mod))
 
 	await ctx.message.add_reaction(goodReaction)
+
+
+async def bingo_tiles_dispute(ctx: discord.ext.commands.Context, auth, args):
+	""" Mark bingo tile status 
+
+	Usage: !bingo dispute TEAM TILE [MOD]
+
+	TEAM - the team name (as at the start of their text channel)
+	TILE - The name of the tile to get information on. For tile names use `!bingo tiles list`
+	MOD  - The name of the mod to approve on behalf of (default is message author)"""
+
+	if max(auth.keys()) < commands.PermLevel.Admin:
+		raise discordbingo.PermissionDenied()
+
+	if len(args) < 2:
+		await ctx.send("Usage: !bingo dispute TEAM TILE")
+		return
+
+	team = args[0]
+	tile = args[1]
+	mod = ctx.author
+	if len(args) > 2:
+		mod = discordbingo.identifyPlayer(ctx, args[2])
+
+	teams.disputeTile(ctx.guild, team, tile, str(mod))
+
+	await ctx.message.add_reaction(goodReaction)
+
+
+async def bingo_tiles_unapprove(ctx: discord.ext.commands.Context, auth, args):
+	""" Mark bingo tile status 
+
+	Usage: !bingo unapprove TEAM TILE [MOD]
+
+	TEAM - the team name (as at the start of their text channel)
+	TILE - The name of the tile to get information on. For tile names use `!bingo tiles list`
+	MOD  - The name of the mod to remove approval of"""
+
+	if max(auth.keys()) < commands.PermLevel.Mod:
+		raise discordbingo.PermissionDenied()
+
+	if len(args) < 2:
+		await ctx.send("Usage: !bingo unapprove TEAM TILE")
+		return
+
+	team = args[0]
+	tile = args[1]
+	mod = ctx.author
+	if len(args) > 2:
+		mod = discordbingo.identifyPlayer(ctx, args[2])
+
+	teams.unapproveTile(ctx.guild, team, tile, str(mod))
+
+	await ctx.message.add_reaction(goodReaction)
+
+
+async def bingo_tiles_resolve(ctx: discord.ext.commands.Context, auth, args):
+	""" Mark bingo tile status 
+
+	Usage: !bingo resolve TEAM TILE [MOD]
+
+	TEAM - the team name (as at the start of their text channel)
+	TILE - The name of the tile to get information on. For tile names use `!bingo tiles list`
+	MOD  - The name of the mod to remove dispute of"""
+
+	if max(auth.keys()) < commands.PermLevel.Mod:
+		raise discordbingo.PermissionDenied()
+
+	if len(args) < 2:
+		await ctx.send("Usage: !bingo resolve TEAM TILE")
+		return
+
+	team = args[0]
+	tile = args[1]
+	mod = ctx.author
+	if len(args) > 2:
+		mod = discordbingo.identifyPlayer(ctx, args[2])
+
+	teams.resolveTile(ctx.guild, team, tile, str(mod))
+
+	await ctx.message.add_reaction(goodReaction)
+
+
+async def bingo_tiles_approvers(ctx: discord.ext.commands.Context, auth, args):
+	""" Get the list of mods who approved a tile 
+
+	Usage: !bingo approvers TEAM TILE
+
+	TEAM - the team name (as at the start of their text channel)
+	TILE - The name of the tile to get information on. For tile names use `!bingo tiles list`"""
+
+	if max(auth.keys()) < commands.PermLevel.Mod:
+		raise discordbingo.PermissionDenied()
+
+	if len(args) < 2:
+		await ctx.send("Usage: !bingo tiles approvers TEAM TILE")
+		return
+
+	team = args[0]
+	tile = args[1]
+
+	teamBoard = teams.loadTeamBoard(ctx.guild, team)
+	tld = teamBoard.getTile(tile)
+
+	if tld.approved_by:
+		await ctx.send(", ".join(tld.approved_by))
+	else:
+		await ctx.send("No approvers on record")
 
 
 async def bingo_tiles_setprogress(ctx: discord.ext.commands.Context, auth, args):
@@ -674,8 +730,8 @@ async def bingo_tiles_progress(ctx: discord.ext.commands.Context, auth, args):
 	res = []
 
 	for t in discordbingo.listTeams(ctx.guild):
-		tmd = teams.getTeamProgress(ctx.guild, t)
-		ps = tld.progressString(teams.getTile(tmd, tile))
+		tmd = teams.loadTeamBoard(ctx.guild, t)
+		ps = tld.progressString(tmd.getTile(tile))
 
 		res.append(f"{t}: {ps}")
 
@@ -762,7 +818,6 @@ bingo_commands = {
 		"add": (commands.PermLevel.Admin, bingo_teams_add),
 		"remove": (commands.PermLevel.Admin, bingo_teams_remove),
 		"rename": (commands.PermLevel.Admin, bingo_teams_rename),
-		"setcaptain": (commands.PermLevel.Admin, bingo_teams_setcaptain),
 		"progress": bingo_teams_progress,
 		"createapprovechannel": bingo_teams_createapprovechannel
 	}),
@@ -792,14 +847,18 @@ bingo_commands = {
 			"": bingo_tiles,
 			"description": bingo_tiles_find_description
 		},
-		"approve": bingo_tiles_approve,
 		"setprogress": bingo_tiles_setprogress,
 		"addprogress": bingo_tiles_addprogress,
 		"remove": (commands.PermLevel.Admin, bingo_tiles_remove),
 		"progress": bingo_tiles_progress,
 		"createapprovalpost": bingo_tiles_createapprovalpost
 	}),
-	"board": bingo_teams_board
+	"board": bingo_teams_board,
+	"approve": bingo_tiles_approve,
+	"unapprove": bingo_tiles_unapprove,
+	"dispute": bingo_tiles_dispute,
+	"resolve": bingo_tiles_resolve,
+	"approvers": bingo_tiles_approvers
 }
 
 async def command(ctx: discord.ext.commands.Context, args):

@@ -16,7 +16,7 @@ import bingo.commands
 with open("token.txt", 'r') as fp:
     gTOKEN = fp.readline()
 
-gPREFIX = "¬"
+gPREFIX = "$"
 
 
 # Bot
@@ -121,14 +121,50 @@ async def on_raw_reaction_remove(payload):
     if str(payload.emoji) == '✅':
         await isBingoTaskUnapproved(bot, payload)
 
+
+
+        
+def updateAllXPTiles(server):
+    brd = board.load(server)
+    xpTiles = brd.getXpTiles()
+    for tnm in xpTiles:
+        xpTile = brd.getTileByName(tnm)
+        skill = xpTile.skill
+        WOM.WOMc.updateData(skill)
+
+        for team in discordbingo.listTeams(server):
+            tmpData = WOM.WOMc.getTeamData(skill, discordbingo.getTeamDisplayName(server, team))
+
+            if not tmpData:
+                print(f"Missing data for {team} in {skill}, ignoring")
+                continue
+
+            totalXP = tmpData.getTotalXP()
+
+            tmData = teams.loadTeamBoard(server, team)
+            teams._setProgress(brd, tmData, tnm, totalXP)
+            teams.saveTeamBoard(server, team, tmData)
+
+            print(f"{team} has {totalXP} xp gained in {skill}")
+        print("^^^^^^^^^^^^^^^^^^^^")
+
 @tasks.loop(seconds=3600)
 async def intervalTasks(guild):
     WOM.WOMg.updateGroup()
-    teams.updateAllXPTiles(guild)
+    updateAllXPTiles(guild)
     
 @bot.command()
 async def startWOM(ctx: discord.ext.commands.Context):
     intervalTasks.start(ctx.guild)
+
+
+@bot.command()
+async def updateWOM(ctx: discord.ext.commands.Context):
+    # WOM.WOMg.updateGroup()
+    updateAllXPTiles(ctx.guild)
+
+
+
 
 class TaskView(discord.ui.View):
     def __init__(self, guild, teamName, count_tasks):
@@ -197,11 +233,11 @@ class TaskView(discord.ui.View):
 
     def create_embed(self):
         brd = board.load(self.guild)
-        tm = teams.loadTeamTiles(self.guild, self.teamName)
+        tm = teams.loadTeamBoard(self.guild, self.teamName)
 
         task_key = self.taskKey()
         task = brd.getTileByName(task_key)
-        t = teams.getTile(tm, task_key)
+        t = tm.getTile(task_key)
 
         if isinstance(self.count_tasks[self.task_index], list):
             section_key = task_key.split(".")[0]
