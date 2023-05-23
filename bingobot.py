@@ -8,7 +8,6 @@ import os, json
 
 import bingobot_admin
 from bingo import bingodata, board, teams, discordbingo, WOM
-import bingo.commands
 
 
 # Settings
@@ -26,6 +25,19 @@ intents.members = True
 
 description = '''Discord osrs bot'''
 bot = commands.Bot(intents=intents, command_prefix=gPREFIX, description='Bingo time',  case_insensitive=True)
+
+gAPPROVEREACT = '✅'
+gDISPUTEREACT = '🏴󠁧󠁢󠁳󠁣󠁴󠁿'
+
+
+@bot.event
+async def on_ready():
+    print('Logged in as')
+    print(bot.user.name)
+    print(bot.user.id)
+    print('------')
+
+
 
 async def isBotApprovalPost(bot, payload):
     channel = await bot.fetch_channel(payload.channel_id)
@@ -66,16 +78,16 @@ async def isBingoTaskApproved(bot, payload):
     user = guild.get_member(payload.user_id)
     perms = discordbingo.userGetPermLevels(user)
 
-    # if not bingo.commands.PermLevel.Admin in perms and not bingo.commands.PermLevel.Mod in perms:
-    #     await channel.send(f'{user.name} you are not an admin!')
-    #     return
+    if not discordbingo.PermLevel.Admin in perms and not discordbingo.PermLevel.Mod in perms:
+        await channel.send(f'{user.name} you are not a mod!')
+        return
 
-    # if bingo.commands.PermLevel.Player in perms:
-    #     if team == perms[bingo.commands.PermLevel.Player]:
-    #         await channel.send(f'{user.name} you are in that team!')
-    #         return
+    if discordbingo.PermLevel.Player in perms:
+        if team == perms[discordbingo.PermLevel.Player]:
+            await channel.send(f'{user.name} you are in that team!')
+            return
 
-    teams.addApproval(guild, team, tile, user)
+    teams.approveTile(guild, team, tile, user)
     await discordbingo.auditLogGuild(guild, user, f"Approved tile {tile} for team {team}")
 
 
@@ -89,37 +101,70 @@ async def isBingoTaskUnapproved(bot, payload):
     user = guild.get_member(payload.user_id)
     perms = discordbingo.userGetPermLevels(user)
 
-    # if not bingo.commands.PermLevel.Admin in perms and not bingo.commands.PermLevel.Mod in perms:
-    #     await channel.send(f'{user.name} you are not an admin!')
-    #     return
+    if not discordbingo.PermLevel.Admin in perms and not discordbingo.PermLevel.Mod in perms:
+        await channel.send(f'{user.name} you are not a mod!')
+        return
 
-    # if bingo.commands.PermLevel.Player in perms:
-    #     if team == perms[bingo.commands.PermLevel.Player]:
-    #         await channel.send(f'{user.name} you are in that team!')
-    #         return
+    if discordbingo.PermLevel.Player in perms:
+        if team == perms[discordbingo.PermLevel.Player]:
+            await channel.send(f'{user.name} you are in that team!')
+            return
 
-    teams.removeApproval(guild, team, tile, user)
+    teams.unapproveTile(guild, team, tile, user)
     await discordbingo.auditLogGuild(guild, user, f"Removed approval on tile {tile} for team {team}")
 
 
+async def isBingoTaskDisputed(bot, payload):
+    team, tile = await isBotApprovalPost(bot, payload)
+    if not team:
+        return
 
-@bot.event
-async def on_ready():
-    print('Logged in as')
-    print(bot.user.name)
-    print(bot.user.id)
-    print('------')
+    # Check user permissions
+    guild = bot.get_guild(payload.guild_id)
+    user = guild.get_member(payload.user_id)
+    perms = discordbingo.userGetPermLevels(user)
+
+    if not discordbingo.PermLevel.Admin in perms:
+        await channel.send(f'{user.name} you are not a admin!')
+        return
+
+    teams.disputeTile(guild, team, tile, user)
+    await discordbingo.auditLogGuild(guild, user, f"Disputed tile {tile} for team {team}")
+
+
+async def isBingoTaskResolved(bot, payload):
+    team, tile = await isBotApprovalPost(bot, payload)
+    if not team:
+        return
+
+    # Check user permissions
+    guild = bot.get_guild(payload.guild_id)
+    user = guild.get_member(payload.user_id)
+    perms = discordbingo.userGetPermLevels(user)
+
+    if not discordbingo.PermLevel.Admin in perms:
+        await channel.send(f'{user.name} you are not a admin!')
+        return
+
+    teams.resolveTile(guild, team, tile, user)
+    await discordbingo.auditLogGuild(guild, user, f"Resolved tile {tile} for team {team}")
+
+
 
 
 @bot.event
 async def on_raw_reaction_add(payload):
-    if str(payload.emoji) == '✅':
+    if str(payload.emoji) == gAPPROVEREACT:
         await isBingoTaskApproved(bot, payload)
+    elif str(payload.emoji) == gDISPUTEREACT:
+        await isBingoTaskDisputed(bot, payload)
 
 @bot.event
 async def on_raw_reaction_remove(payload):
-    if str(payload.emoji) == '✅':
+    if str(payload.emoji) == gAPPROVEREACT:
         await isBingoTaskUnapproved(bot, payload)
+    elif str(payload.emoji) == gDISPUTEREACT:
+        await isBingoTaskResolved(bot, payload)
 
 
 
@@ -160,7 +205,6 @@ async def intervalTasks(guild):
 @bot.command()
 async def startWOM(ctx: discord.ext.commands.Context):
     intervalTasks.start(ctx.guild)
-
 
 @bot.command()
 async def updateWOM(ctx: discord.ext.commands.Context):

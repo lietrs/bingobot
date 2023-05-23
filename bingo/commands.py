@@ -2,17 +2,6 @@
 
 
 
-class PermLevel:
-	strings = ["None", "User", "Player", "Captain", "Mod", "Admin", "Owner"]
-	Nothing = 0
-	User = 1 
-	Player = 2
-	Captain = 3
-	Mod = 4
-	Admin = 5
-	Owner = 6
-
-
 
 def Lookup(auth, cmds, args, halp=False):
 	ret = None 

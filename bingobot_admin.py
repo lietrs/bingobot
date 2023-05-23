@@ -24,9 +24,9 @@ async def bingo_who(ctx: discord.ext.commands.Context, auth, args):
 	retstr = f"User {u.name} (ID: {u.id})"
 	for r, t in uauth.items():
 		if t:
-			retstr += f"\n{commands.PermLevel.strings[r]} in {t}"
+			retstr += f"\n{discordbingo.PermLevel.strings[r]} in {t}"
 		else:
-			retstr += f"\n{commands.PermLevel.strings[r]}"
+			retstr += f"\n{discordbingo.PermLevel.strings[r]}"
 
 	await ctx.reply(retstr)
 
@@ -69,7 +69,7 @@ async def bingo_start(ctx: discord.ext.commands.Context, auth, args):
 
 	This sets the status to started, which is used to make sure normal people can't see the tiles early"""
 	
-	if max(auth.keys()) < commands.PermLevel.Admin:
+	if max(auth.keys()) < discordbingo.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
 
 	status = bingodata.getBingoStatus(ctx.guild)
@@ -84,7 +84,7 @@ async def bingo_end(ctx: discord.ext.commands.Context, auth, args):
 
 	Currently only sets the ended flag, doesn't stop any commands functioning"""
 	
-	if max(auth.keys()) < commands.PermLevel.Admin:
+	if max(auth.keys()) < discordbingo.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
 
 	status = bingodata.getBingoStatus(ctx.guild)
@@ -136,7 +136,7 @@ async def bingo_teams_add(ctx: discord.ext.commands.Context, auth, args):
 	SLUG - the team name "slug". This is how the channels and files are named, no special characters please
 	NAME - The name they actually want, that can be anything"""
 
-	if max(auth.keys()) < commands.PermLevel.Admin:
+	if max(auth.keys()) < discordbingo.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
 
 	async with ctx.typing():
@@ -154,7 +154,7 @@ async def bingo_teams_rename(ctx: discord.ext.commands.Context, auth, args):
 	NEWSLUG - What the new team name should be
 	NEWNAME - The new display name"""
 
-	if max(auth.keys()) < commands.PermLevel.Admin:
+	if max(auth.keys()) < discordbingo.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
 
 	team = args[0]
@@ -175,7 +175,7 @@ async def bingo_teams_remove(ctx: discord.ext.commands.Context, auth, args):
 
 	TEAM - the team name (as at the start of their text channel)"""
 
-	if max(auth.keys()) < commands.PermLevel.Admin:
+	if max(auth.keys()) < discordbingo.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
 
 	async with ctx.typing():
@@ -206,7 +206,7 @@ async def bingo_players_add(ctx: discord.ext.commands.Context, auth, args):
 	TEAM - the team name (as at the start of their text channel)
 	PLAYER - A player name. Can tag players, or use just a username, or username#1234"""
 
-	if max(auth.keys()) < commands.PermLevel.Admin:
+	if max(auth.keys()) < discordbingo.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
 
 	if len(args) < 2:
@@ -233,7 +233,7 @@ async def bingo_players_remove(ctx: discord.ext.commands.Context, auth, args):
 
 	PLAYER - A player name. Can tag players, or use just a username, or username#1234"""
 
-	if max(auth.keys()) < commands.PermLevel.Admin:
+	if max(auth.keys()) < discordbingo.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
 
 	if len(args) < 1:
@@ -259,7 +259,7 @@ async def bingo_teams_progress(ctx: discord.ext.commands.Context, auth, args):
 
 	TEAM - the team name (as at the start of their text channel)"""
 
-	if max(auth.keys()) < commands.PermLevel.Mod:
+	if max(auth.keys()) < discordbingo.PermLevel.Mod:
 		raise discordbingo.PermissionDenied()
 
 	if len(args) < 1:
@@ -286,7 +286,7 @@ async def bingo_teams_board(ctx: discord.ext.commands.Context, auth, args):
 
 	TEAM - the team name (as at the start of their text channel)"""
 
-	if max(auth.keys()) < commands.PermLevel.Mod:
+	if max(auth.keys()) < discordbingo.PermLevel.Mod:
 		raise discordbingo.PermissionDenied()
 
 	if len(args) < 1:
@@ -368,7 +368,7 @@ async def bingo_tiles_add(ctx: discord.ext.commands.Context, auth, args):
 
 	Usage: !bingo tiles add basic SLUG NAME DESCRIPTION X Y"""
 
-	if max(auth.keys()) < commands.PermLevel.Admin:
+	if max(auth.keys()) < discordbingo.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
 
 	# Usage: !bingo tiles add SLUG NAME DESCRIPTION X Y
@@ -391,7 +391,7 @@ async def bingo_tiles_add_any(ctx: discord.ext.commands.Context, auth, args):
 
 	Usage: !bingo tiles add any SLUG NAME DESCRIPTION X Y"""
 
-	if max(auth.keys()) < commands.PermLevel.Admin:
+	if max(auth.keys()) < discordbingo.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
 
 	# Usage: !bingo tiles add SLUG NAME DESCRIPTION X Y
@@ -414,7 +414,7 @@ async def bingo_tiles_add_all(ctx: discord.ext.commands.Context, auth, args):
 
 	Usage: !bingo tiles add any SLUG NAME DESCRIPTION X Y"""
 
-	if max(auth.keys()) < commands.PermLevel.Admin:
+	if max(auth.keys()) < discordbingo.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
 
 	# Usage: !bingo tiles add SLUG NAME DESCRIPTION X Y
@@ -437,7 +437,7 @@ async def bingo_tiles_add_xp(ctx: discord.ext.commands.Context, auth, args):
 
 	Usage: !bingo tiles add xp SKILL XPREQUIRED DESCRIPTION X Y"""
 
-	if max(auth.keys()) < commands.PermLevel.Admin:
+	if max(auth.keys()) < discordbingo.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
 
 	if len(args) < 5:
@@ -462,7 +462,7 @@ async def bingo_tiles_add_multi(ctx: discord.ext.commands.Context, auth, args):
 	""" Add bingo tiles - Multiple counts required
 
 	Usage: !bingo tiles add multi SLUG NAME DESCRIPTION QTY X Y"""
-	if max(auth.keys()) < commands.PermLevel.Admin:
+	if max(auth.keys()) < discordbingo.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
 
 	# Usage: !bingo tiles add SLUG NAME DESCRIPTION X Y
@@ -485,7 +485,7 @@ async def bingo_tiles_add_items(ctx: discord.ext.commands.Context, auth, args):
 
 	Usage: !bingo tiles add items SLUG NAME DESCRIPTION X Y ITEM1 ITEM2 ..."""
 
-	if max(auth.keys()) < commands.PermLevel.Admin:
+	if max(auth.keys()) < discordbingo.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
 
 	if len(args) < 6:
@@ -522,7 +522,7 @@ async def bingo_tiles_approve(ctx: discord.ext.commands.Context, auth, args):
 	TILE - The name of the tile to get information on. For tile names use `!bingo tiles list`
 	MOD  - The name of the mod to approve on behalf of (default is message author)"""
 
-	if max(auth.keys()) < commands.PermLevel.Mod:
+	if max(auth.keys()) < discordbingo.PermLevel.Mod:
 		raise discordbingo.PermissionDenied()
 
 	if len(args) < 2:
@@ -551,7 +551,7 @@ async def bingo_tiles_dispute(ctx: discord.ext.commands.Context, auth, args):
 	TILE - The name of the tile to get information on. For tile names use `!bingo tiles list`
 	MOD  - The name of the mod to approve on behalf of (default is message author)"""
 
-	if max(auth.keys()) < commands.PermLevel.Admin:
+	if max(auth.keys()) < discordbingo.PermLevel.Admin:
 		raise discordbingo.PermissionDenied()
 
 	if len(args) < 2:
@@ -578,7 +578,7 @@ async def bingo_tiles_unapprove(ctx: discord.ext.commands.Context, auth, args):
 	TILE - The name of the tile to get information on. For tile names use `!bingo tiles list`
 	MOD  - The name of the mod to remove approval of"""
 
-	if max(auth.keys()) < commands.PermLevel.Mod:
+	if max(auth.keys()) < discordbingo.PermLevel.Mod:
 		raise discordbingo.PermissionDenied()
 
 	if len(args) < 2:
@@ -605,7 +605,7 @@ async def bingo_tiles_resolve(ctx: discord.ext.commands.Context, auth, args):
 	TILE - The name of the tile to get information on. For tile names use `!bingo tiles list`
 	MOD  - The name of the mod to remove dispute of"""
 
-	if max(auth.keys()) < commands.PermLevel.Mod:
+	if max(auth.keys()) < discordbingo.PermLevel.Mod:
 		raise discordbingo.PermissionDenied()
 
 	if len(args) < 2:
@@ -631,7 +631,7 @@ async def bingo_tiles_approvers(ctx: discord.ext.commands.Context, auth, args):
 	TEAM - the team name (as at the start of their text channel)
 	TILE - The name of the tile to get information on. For tile names use `!bingo tiles list`"""
 
-	if max(auth.keys()) < commands.PermLevel.Mod:
+	if max(auth.keys()) < discordbingo.PermLevel.Mod:
 		raise discordbingo.PermissionDenied()
 
 	if len(args) < 2:
@@ -644,10 +644,17 @@ async def bingo_tiles_approvers(ctx: discord.ext.commands.Context, auth, args):
 	teamBoard = teams.loadTeamBoard(ctx.guild, team)
 	tld = teamBoard.getTile(tile)
 
+	message = ""
+
 	if tld.approved_by:
-		await ctx.send(", ".join(tld.approved_by))
+		message += "Approved by: " + ", ".join(tld.approved_by)
 	else:
-		await ctx.send("No approvers on record")
+		message += "No approvers"
+
+	if tld.disputed_by:
+		message += "\nDisputed by: " + ", ".join(tld.disputed_by)
+
+	await ctx.send(message)
 
 
 async def bingo_tiles_setprogress(ctx: discord.ext.commands.Context, auth, args):
@@ -659,7 +666,7 @@ async def bingo_tiles_setprogress(ctx: discord.ext.commands.Context, auth, args)
 	TILE - The name of the tile to get information on. For tile names use `!bingo tiles list` 
 	PROGRESS - Depends on the type of the tile. For xp and multi/count tiles this is a number. For items it's the name of the item """
 
-	if max(auth.keys()) < commands.PermLevel.Mod:
+	if max(auth.keys()) < discordbingo.PermLevel.Mod:
 		raise discordbingo.PermissionDenied()
 
 	if len(args) < 3:
@@ -684,7 +691,7 @@ async def bingo_tiles_addprogress(ctx: discord.ext.commands.Context, auth, args)
 	TILE - The name of the tile to get information on. For tile names use `!bingo tiles list` 
 	PROGRESS - Depends on the type of the tile. For xp and multi/count tiles this is a number. For items it's the name of the item """
 
-	if max(auth.keys()) < commands.PermLevel.Mod:
+	if max(auth.keys()) < discordbingo.PermLevel.Mod:
 		raise discordbingo.PermissionDenied()
 
 	if len(args) < 3:
@@ -806,28 +813,28 @@ async def bingo_teams_createapprovechannel(ctx: discord.ext.commands.Context, au
 
 bingo_commands = {
 	"who": bingo_who,
-	# "init": (commands.PermLevel.Owner, bingo_init),
-	# "cleanup": (commands.PermLevel.Owner, bingo_cleanup),
+	# "init": (discordbingo.PermLevel.Owner, bingo_init),
+	# "cleanup": (discordbingo.PermLevel.Owner, bingo_cleanup),
 	"init": bingo_init,
 	"cleanup": bingo_cleanup,
-	"start": (commands.PermLevel.Admin, bingo_start),
-	"end": (commands.PermLevel.Admin, bingo_end),
-	"teams": (commands.PermLevel.Mod, {
+	"start": (discordbingo.PermLevel.Admin, bingo_start),
+	"end": (discordbingo.PermLevel.Admin, bingo_end),
+	"teams": (discordbingo.PermLevel.Mod, {
 		"": bingo_teams,
 		"list": bingo_teams_list,
-		"add": (commands.PermLevel.Admin, bingo_teams_add),
-		"remove": (commands.PermLevel.Admin, bingo_teams_remove),
-		"rename": (commands.PermLevel.Admin, bingo_teams_rename),
+		"add": (discordbingo.PermLevel.Admin, bingo_teams_add),
+		"remove": (discordbingo.PermLevel.Admin, bingo_teams_remove),
+		"rename": (discordbingo.PermLevel.Admin, bingo_teams_rename),
 		"progress": bingo_teams_progress,
 		"createapprovechannel": bingo_teams_createapprovechannel
 	}),
-	"players": (commands.PermLevel.Mod, {
+	"players": (discordbingo.PermLevel.Mod, {
 		"": bingo_players,
 		"list": bingo_players_list,
-		"add": (commands.PermLevel.Admin, bingo_players_add),
-		"remove": (commands.PermLevel.Admin, bingo_players_remove)
+		"add": (discordbingo.PermLevel.Admin, bingo_players_add),
+		"remove": (discordbingo.PermLevel.Admin, bingo_players_remove)
 	}),
-	"tiles": (commands.PermLevel.Mod, {
+	"tiles": (discordbingo.PermLevel.Mod, {
 		"": bingo_tiles,
 		"list": {
 			"": bingo_tiles_list,
@@ -835,7 +842,7 @@ bingo_commands = {
 			"count": bingo_tiles_list_count
 		},
 		"about": bingo_tiles_about,
-		"add": (commands.PermLevel.Admin, {
+		"add": (discordbingo.PermLevel.Admin, {
 			"basic": bingo_tiles_add,
 			"xp": bingo_tiles_add_xp,
 			"multi": bingo_tiles_add_multi,
@@ -849,7 +856,7 @@ bingo_commands = {
 		},
 		"setprogress": bingo_tiles_setprogress,
 		"addprogress": bingo_tiles_addprogress,
-		"remove": (commands.PermLevel.Admin, bingo_tiles_remove),
+		"remove": (discordbingo.PermLevel.Admin, bingo_tiles_remove),
 		"progress": bingo_tiles_progress,
 		"createapprovalpost": bingo_tiles_createapprovalpost
 	}),
@@ -866,9 +873,9 @@ async def command(ctx: discord.ext.commands.Context, args):
 	auth = discordbingo.ctxGetPermLevels(ctx)
 	# mauth = max(auth.keys())
 
-	mauth = commands.PermLevel.Owner
+	mauth = discordbingo.PermLevel.Owner
 
-	# if mauth < commands.PermLevel.Captain:
+	# if mauth < discordbingo.PermLevel.Captain:
 	# 	print(f"Denied. {auth}")
 	# 	return # Silently fail
 

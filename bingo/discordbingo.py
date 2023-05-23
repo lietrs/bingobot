@@ -44,6 +44,21 @@ class names:
 
 
 
+class PermLevel:
+	strings = ["None", "User", "Player", "Captain", "Mod", "Admin", "Owner"]
+	Nothing = 0
+	User = 1 
+	Player = 2
+	Captain = 3
+	Mod = 4
+	Admin = 5
+	Owner = 6
+
+
+
+
+
+
 class PermissionDenied(Exception):
 	pass
 
@@ -58,19 +73,19 @@ def userGetPermLevels(user):
 
 	# Todo: should make this so it uses the names class
 	for r in user.roles:
-		newpl = commands.PermLevel.Nothing
+		newpl = PermLevel.Nothing
 		spl = r.name.split('-')
 		match ["-".join(spl[0:-1]), spl[-1]]:
 			case ["bingo", "admin"]:
-				ret[commands.PermLevel.Admin] = ""
+				ret[PermLevel.Admin] = ""
 			case ["bingo", "mod"]:
-				ret[commands.PermLevel.Mod] = ""
+				ret[PermLevel.Mod] = ""
 			case ["bingo", "owner"]:
-				ret[commands.PermLevel.Owner] = ""
+				ret[PermLevel.Owner] = ""
 			case [team, "member"]:
-				ret[commands.PermLevel.Player] = team
+				ret[PermLevel.Player] = team
 			case [team, "captain"]:
-				ret[commands.PermLevel.Captain] = team
+				ret[PermLevel.Captain] = team
 
 	return ret
 
@@ -78,8 +93,8 @@ def userGetPermLevels(user):
 def ctxGetPermLevels(ctx):
 	ret = userGetPermLevels(ctx.author)
 
-	if ctx.guild.owner == ctx.author and not commands.PermLevel.Owner in ret: 
-		ret[commands.PermLevel.Owner] = ""
+	if ctx.guild.owner == ctx.author and not PermLevel.Owner in ret: 
+		ret[PermLevel.Owner] = ""
 
 	return ret
 
@@ -87,7 +102,7 @@ def ctxGetPermLevels(ctx):
 def ctxIsAdmin(ctx):
     perms = discordbingo.ctxGetPermLevels(ctx)
     
-    if not commands.PermLevel.Admin in perms and not commands.PermLevel.Owner in perms:
+    if not PermLevel.Admin in perms and not PermLevel.Owner in perms:
         return False
 
     return True
