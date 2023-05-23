@@ -27,25 +27,39 @@ intents.members = True
 description = '''Discord osrs bot'''
 bot = commands.Bot(intents=intents, command_prefix=gPREFIX, description='Bingo time',  case_insensitive=True)
 
-
-
-async def isBingoTaskApproved(bot, payload):
+async def isBotApprovalPost(bot, payload):
     channel = await bot.fetch_channel(payload.channel_id)
     message = await channel.fetch_message(payload.message_id)
 
-    # Todo: Check message author is actually bingobot or channel is the mod channel?
+    # Todo: Check message author is actually bingobot
 
     # ignore reactions from bingobot
     if message.author.id == payload.user_id:
-        return
+        return (None, None)
 
     # Parse message:
     f = re.findall("\[(.*?)\:(.*?)\]", message.content)
-    if not f:
-        return
+    if f:
+        team = f[0][0]
+        tile = f[0][1]
+    else:
+        # Lookup by description
+        spl = channel.name.split("-")
+        team = "-".join(spl[0:-1])
+        if spl[-1] != "approvals":
+            return (None, None)
 
-    team = f[0][0]
-    tile = f[0][1]
+        brd = board.load(bot.get_guild(payload.guild_id))
+        tile = brd.findTileByDescription(message.content)
+        if not tile:
+            return (None, None)
+
+    return (team, tile)
+
+async def isBingoTaskApproved(bot, payload):
+    team, tile = await isBotApprovalPost(bot, payload)
+    if not team:
+        return
 
     # Check user permissions
     guild = bot.get_guild(payload.guild_id)
@@ -66,22 +80,9 @@ async def isBingoTaskApproved(bot, payload):
 
 
 async def isBingoTaskUnapproved(bot, payload):
-    channel = await bot.fetch_channel(payload.channel_id)
-    message = await channel.fetch_message(payload.message_id)
-
-    # Todo: Check message author is actually bingobot
-
-    # ignore reactions from bingobot
-    if message.author.id == payload.user_id:
+    team, tile = await isBotApprovalPost(bot, payload)
+    if not team:
         return
-
-    # Parse message:
-    f = re.findall("\[(.*?)\:(.*?)\]", message.content)
-    if not f:
-        return
-
-    team = f[0][0]
-    tile = f[0][1]
 
     # Check user permissions
     guild = bot.get_guild(payload.guild_id)
@@ -109,6 +110,7 @@ async def on_ready():
     print(bot.user.id)
     print('------')
 
+
 @bot.event
 async def on_raw_reaction_add(payload):
     if str(payload.emoji) == '✅':
@@ -128,14 +130,6 @@ async def intervalTasks(guild):
 async def startWOM(ctx: discord.ext.commands.Context):
     intervalTasks.start(ctx.guild)
 
-    # count_tasks = [
-    #     "die",
-    #     [
-    #         "troublewars.tb",
-    #         "troubleware.cw"
-    #     ]
-    # ]
-
 class TaskView(discord.ui.View):
     def __init__(self, guild, teamName, count_tasks):
         super().__init__()
@@ -149,7 +143,6 @@ class TaskView(discord.ui.View):
         self.subsection_button_disabled = True  # Initially disable the "Next Subsection" button
 
     def taskKey(self):
-        print(self.count_tasks)
         section_key = self.count_tasks[self.task_index]
         if isinstance(section_key, list):
             task_key = section_key[self.subsection_index]
@@ -240,25 +233,23 @@ async def setup(ctx, team):
     allcounts = brd.getCountTiles()
 
     # Split into sections
-    # count_tasks = {}
-    # for n in allcounts:
-    #     if "." in n:
-    #         group = n.split(".")[0]
-    #         if group in count_tasks:
-    #             count_tasks[group].append(n)
-    #         else:
-    #             count_tasks[group] = [n]
-    #     else:
-    #         count_tasks[n] = []
+    tsk_dict = {}
+    for n in allcounts:
+        if "." in n:
+            group = n.split(".")[0]
+            if group in tsk_dict:
+                tsk_dict[group].append(n)
+            else:
+                tsk_dict[group] = [n]
+        else:
+            tsk_dict[n] = None
 
-    count_tasks = [
-        "die",
-        [
-            "troublewars.tb",
-            "troublewars.cw"
-        ]
-    ]
-
+    count_tasks = []
+    for sl, grp in tsk_dict.items():
+        if grp is not None:
+            count_tasks.append(grp)
+        else:
+            count_tasks.append(sl)
 
     if count_tasks:
         view = TaskView(ctx.guild, team, count_tasks)

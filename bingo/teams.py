@@ -149,7 +149,7 @@ def onUnapproved(server, team, tile, mod):
 def _addApprovalInternal(server, tm, tile, mod, link = None):
 	t = getTile(tm, tile)
 
-	if t.status is not TmTileStatus.Approved:
+	if t.status != TmTileStatus.Approved:
 		t.status = TmTileStatus.Approved
 		onApproved(server, "???", tile, mod)
 
@@ -192,7 +192,7 @@ def subtileApproved(server, tm, tile, subtile):
 	tmTile = getTile(tm, tile)
 
 	if brdTile.isComplete(tmTile):
-		if tmTile.status is not TmTileStatus.Approved:
+		if tmTile.status != TmTileStatus.Approved:
 			tmTile.status = TmTileStatus.Approved
 			onApproved(server, "???", tile, "BingoBot")
 
@@ -248,10 +248,10 @@ def setProgress(server, team, tile, progress, link = None):
 	setTile(tm, tile, t)
 
 	if tld.isComplete(t): 
-		if t.status is not TmTileStatus.Approved:
+		if t.status != TmTileStatus.Approved:
 			_addApprovalInternal(server, tm, tile, "BingoBot")
 	else:
-		if t.status is TmTileStatus.Approved:
+		if t.status == TmTileStatus.Approved:
 			_removeApprovalInternal(server, tm, tile, "BingoBot")
 
 	saveTeamTiles(server, team, tm)
@@ -277,7 +277,7 @@ def addProgress(server, team, tile, progress, link = None):
 
 	# Todo: Check if negative progress can be added
 	if tld.isComplete(t): 
-		if t.status is not TmTileStatus.Approved:
+		if t.status != TmTileStatus.Approved:
 			_addApprovalInternal(server, tm, tile, "BingoBot")
 
 	saveTeamTiles(server, team, tm)

@@ -738,11 +738,14 @@ async def bingo_teams_createapprovechannel(ctx: discord.ext.commands.Context, au
 			for sl2, t2 in t.subtiles.items():
 				if isinstance(t2, tiles.TileSet):
 					for sl3, t3 in t2.subtiles.items():
-						await chan.send(f"[{teamSlug}:{sl}.{sl2}.{sl3}] {t3.name}")
+						# await chan.send(f"[{teamSlug}:{sl}.{sl2}.{sl3}] {t3.name}")
+						await chan.send(f"{t3.description}")
 				else:
-					await chan.send(f"[{teamSlug}:{sl}.{sl2}] {t2.name}")
+					# await chan.send(f"[{teamSlug}:{sl}.{sl2}] {t2.name}")
+					await chan.send(f"{t2.description}")
 		else:
-			await chan.send(f"[{teamSlug}:{sl}] {t.name}")
+			# await chan.send(f"[{teamSlug}:{sl}] {t.name}")
+			await chan.send(f"{t.description}")
 
 
 bingo_commands = {
