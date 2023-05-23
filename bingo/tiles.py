@@ -279,7 +279,15 @@ class XPTile(Tile):
 			A = "0"
 		if not B:
 			B = "0"
-		return str(max(int(A),int(B)))
+		total = int(A)+int(B)
+		# Todo: Cap? 
+		return str(total)
+
+	def isComplete(self, tmd):
+		if tmd.progress == "":
+			return False
+
+		return int(tmd.progress) >= self.required
 
 
 class CountTile(Tile):
@@ -321,56 +329,11 @@ class CountTile(Tile):
 			B = "0"
 		return str(int(A)+int(B))
 
-# class ItemsTile(Tile):
-# 	items = []
+	def isComplete(self, tmd):
+		if tmd.progress == "":
+			return False
 
-# 	def __init__(self, d = None):
-# 		super().__init__(d)
-# 		self.items = []
-# 		if d:
-# 			self.items = d["items"]
-
-# 	def toDict(self):
-# 		ret = super().toDict()
-# 		ret["items"] = self.items
-# 		ret["type"] = "items"
-
-# 		return ret
-
-# 	def basicString(self):
-# 		itemList = ", ".join(self.items)
-# 		return f"{super().basicString()} ({itemList})"
-
-# 	def progressString(self, tmd):
-# 		if status > 0:
-# 			return super().progressString(tmd)
-# 		else:
-# 			done = tmd.progress.split(",")
-# 			cnt = 0
-# 			txt = []
-
-# 			for i in self.items:
-# 				if i in done:
-# 					cnt += 1
-# 					txt.append(f"~{i}~")
-# 				else:
-# 					txt.append(i)
-
-# 			itemlist = ", ".join(txt)
-# 			return f"{cnt} out of {len(self.items)} ({itemlist})"
-
-# 	def about(self):
-# 		return super().about() + f"\nRequirement: {', '.join(self.items)}"
-
-
-# 	def mergeProgress(self, A, B):
-# 		ret = []
-# 		for i in self.items:
-# 			if (i in A) or (i in B):
-# 				ret.append(i)
-
-# 		return ",".join(ret)
-
+		return int(tmd.progress) >= self.required
 
 
 def tileFromJson(js):
@@ -381,8 +344,6 @@ def tileFromJson(js):
 			ret = XPTile(js)
 		case "count":
 			ret = CountTile(js)
-		# case "items":
-		# 	ret = ItemsTile(js)
 		case "set":
 			ret = TileSet(js)
 		case "all":

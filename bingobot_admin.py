@@ -291,7 +291,7 @@ async def bingo_teams_progress(ctx: discord.ext.commands.Context, auth, args):
 		raise discordbingo.PermissionDenied()
 
 	if len(args) < 1:
-		ctx.send("Usage: !bingo teams progress TEAMNAME")
+		await ctx.send("Usage: !bingo teams progress TEAMNAME")
 		return
 
 	team = args[0]
@@ -312,6 +312,48 @@ async def bingo_teams_progress(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.send("\n".join(tstrs))
 
 
+async def bingo_teams_board(ctx: discord.ext.commands.Context, auth, args):
+	"""retrieve details on team progress
+
+	Usage: !bingo teams board TEAM
+
+	TEAM - the team name (as at the start of their text channel)"""
+
+	if max(auth.keys()) < commands.PermLevel.Mod:
+		raise discordbingo.PermissionDenied()
+
+	if len(args) < 1:
+		await ctx.send("Usage: !bingo teams board TEAMNAME")
+		return
+
+	team = args[0]
+
+	brd = board.load(ctx.guild)
+	tmd = teams.getTeamProgress(ctx.guild, args[0])
+
+	tstrs = []
+
+	matrix = [[0]*5 for i in range(5)]
+
+	for sl,td in brd.subtiles.items():
+		# if td.isComplete(teams.getTile(tmd, sl)):
+		# 	matrix[td.row][td.col] = 1
+		if teams.getTile(tmd, sl).status == 2:
+			matrix[td.row][td.col] = 1
+
+	ret = "\n```"
+	for row in matrix:
+		ret += "| "
+		for square in row:
+			if square:
+				ret += "O"
+			else:
+				ret += " "
+			ret += " | "
+		ret += "\n"
+
+
+	await ctx.send(ret + "```")
 
 
 
@@ -753,7 +795,8 @@ bingo_commands = {
 		"remove": (commands.PermLevel.Admin, bingo_tiles_remove),
 		"progress": bingo_tiles_progress,
 		"createapprovalpost": bingo_tiles_createapprovalpost
-	})
+	}),
+	"board": bingo_teams_board
 }
 
 async def command(ctx: discord.ext.commands.Context, args):

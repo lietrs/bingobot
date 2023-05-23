@@ -139,13 +139,19 @@ def addEvidence(server, team, tile, evidence):
 	saveTeamTiles(server, team, tm)
 
 
+def onApproved(server, team, tile, mod):
+    print(f"{str(mod)} approved tile {tile} for team {team}")
 
-def _addApprovalInternal(server, tm, tile, mod, link):
+def onUnapproved(server, team, tile, mod):
+    print(f"{str(mod)} unapproved tile {tile} for team {team}")
+
+
+def _addApprovalInternal(server, tm, tile, mod, link = None):
 	t = getTile(tm, tile)
 
 	if t.status is not TmTileStatus.Approved:
 		t.status = TmTileStatus.Approved
-		# Todo: Action on tile approved.
+		onApproved(server, "???", tile, mod)
 
 	if link:
 		t.approved_links.append(link)
@@ -161,6 +167,24 @@ def _addApprovalInternal(server, tm, tile, mod, link):
 		subtileApproved(server, tm, parentTile, split[-1])
 
 
+def _removeApprovalInternal(server, tm, tile, mod):
+	t = getTile(tm, tile)
+
+	if str(mod) in t.approved_by:
+		t.approved_by[:] = [x for x in t.approved_by if not x == str(mod)]
+
+	if not t.approved_by:
+		t.status = TmTileStatus.Incomplete 
+		onUnapproved(server, "???", tile, mod)
+
+	setTile(tm, tile, t)
+
+	if "." in tile:
+		split = tile.split(".")
+		parentTile = ".".join(split[0:-1])
+		subtileUnapproved(server, tm, parentTile, split[-1])
+
+
 def subtileApproved(server, tm, tile, subtile):
 	brd = board.load(server)
 
@@ -170,7 +194,25 @@ def subtileApproved(server, tm, tile, subtile):
 	if brdTile.isComplete(tmTile):
 		if tmTile.status is not TmTileStatus.Approved:
 			tmTile.status = TmTileStatus.Approved
-			#Todo: Action on tile approved.
+			onApproved(server, "???", tile, "BingoBot")
+
+			if "." in tile:
+				split = tile.split(".")
+				parentTile = ".".join(split[0:-1])
+				_removeApprovalInternal(server, tm, parentTile, "BingoBot", None)
+
+	setTile(tm, tile, tmTile)
+
+def subtileUnapproved(server, tm, tile, subtile):
+	brd = board.load(server)
+
+	brdTile = brd.getTileByName(tile)
+	tmTile = getTile(tm, tile)
+
+	if not brdTile.isComplete(tmTile):
+		if tmTile.status is TmTileStatus.Approved:
+			tmTile.status = TmTileStatus.Incomplete
+			onUnapproved(server, "???", tile, "BingoBot")
 
 			if "." in tile:
 				split = tile.split(".")
@@ -178,8 +220,6 @@ def subtileApproved(server, tm, tile, subtile):
 				_addApprovalInternal(server, tm, parentTile, "BingoBot", None)
 
 	setTile(tm, tile, tmTile)
-
-
 
 
 def addApproval(server, team, tile, mod, link = None):
@@ -193,26 +233,26 @@ def addApproval(server, team, tile, mod, link = None):
 def removeApproval(server, team, tile, mod):
 	tm = loadTeamTiles(server, team)
 
-	t = getTile(tm, tile)
-
-	if str(mod) in t.approved_by:
-		t.approved_by[:] = [x for x in t.approved_by if not x == str(mod)]
-
-	if not t.approved_by:
-		t.status = TmTileStatus.Incomplete 
-
-	setTile(tm, tile, t)
+	_removeApprovalInternal(server, tm, tile, mod)
 
 	saveTeamTiles(server, team, tm)
 
 
-
-def setProgress(server, team, tile, progress):
+def setProgress(server, team, tile, progress, link = None):
 	tm = loadTeamTiles(server, team)
+	brd = board.load(server)
+	tld = brd.getTileByName(tile)
 
 	t = getTile(tm, tile)
-	t.progress = progress 
+	t.progress = progress
 	setTile(tm, tile, t)
+
+	if tld.isComplete(t): 
+		if t.status is not TmTileStatus.Approved:
+			_addApprovalInternal(server, tm, tile, "BingoBot")
+	else:
+		if t.status is TmTileStatus.Approved:
+			_removeApprovalInternal(server, tm, tile, "BingoBot")
 
 	saveTeamTiles(server, team, tm)
 
@@ -235,6 +275,11 @@ def addProgress(server, team, tile, progress, link = None):
 	t.progress = tld.mergeProgress(t.progress, progress)
 	setTile(tm, tile, t)
 
+	# Todo: Check if negative progress can be added
+	if tld.isComplete(t): 
+		if t.status is not TmTileStatus.Approved:
+			_addApprovalInternal(server, tm, tile, "BingoBot")
+
 	saveTeamTiles(server, team, tm)
 
 
@@ -252,6 +297,6 @@ def updateAllXPTiles(server):
 		for team in teams:
 			tmpData = WOM.WOMc.getTeamData(skill, discordbingo.getTeamDisplayName(server, team))
 			totalXP = tmpData.getTotalXP()
-			addProgress(server, team, tnm, totalXP)
+			setProgress(server, team, tnm, totalXP)
 			print(f"{team} has {totalXP} xp gained in {skill}")
 		print("^^^^^^^^^^^^^^^^^^^^")
