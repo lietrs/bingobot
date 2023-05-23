@@ -37,6 +37,79 @@ async def on_ready():
     print(bot.user.id)
     print('------')
 
+def isTeamChannel(ctx):
+    spl = ctx.channel.name.split("-")
+    team = "-".join(spl[0:-1])
+
+    if discordbingo.isTeamName(ctx.guild, team):
+        return team
+    return ""
+
+
+
+
+
+@bot.command()
+async def mvp(ctx: discord.ext.commands.Context, *args):
+
+    teamName = isTeamChannel(ctx)
+    if teamName == "":
+        return # Not in a team channel
+
+
+    BingoComp = WOM.WOMc
+    brd = board.load(ctx.guild)
+    tmd = teams.loadTeamBoard(ctx.guild, teamName)
+
+    if len(args):
+        skill = args[0]
+
+        await ctx.send(f"The {skill} mvp is ???")
+    else:
+        skills = brd.getXpTiles()
+
+        ret = []
+        for skill in skills:
+            ret.append(f"The {skill} mvp is ???")
+        await ctx.send("\n".join(ret))
+
+
+
+
+@bot.command()
+async def xp(ctx: discord.ext.commands.Context, *args):
+
+    teamName = isTeamChannel(ctx)
+    if teamName == "":
+        return # Not in a team channel
+
+    BingoComp = WOM.WOMc
+    brd = board.load(ctx.guild)
+    tmd = teams.loadTeamBoard(ctx.guild, teamName)
+
+    if len(args):
+        skill = args[0]
+        skillTile = brd.getTileByName(skill)
+
+        await ctx.send(f"{skillTile.skill}: {skillTile.progressString(tmd.getTile(skill))}")
+    else:
+        skills = brd.getXpTiles()
+
+        ret = []
+        for skill in skills:
+            skillTile = brd.getTileByName(skill)
+            ret.append(f"{skillTile.skill}: {skillTile.progressString(tmd.getTile(skill))}")
+        if ret:
+            await ctx.send("\n".join(ret))
+
+
+
+
+
+
+
+
+
 
 
 async def isBotApprovalPost(bot, payload):
@@ -307,9 +380,6 @@ class TaskView(discord.ui.View):
 
         return embed
 
-
-
-
 @bot.command()
 async def setup(ctx, team):
 
@@ -344,9 +414,15 @@ async def setup(ctx, team):
     else:
         await ctx.send("No count tasks available.")
 
-
-
-
+@bot.command()
+async def aaa(ctx):
+    """ testing """
+    if str(ctx.author.id) == "631886189493747723":
+        # Very important do not delete
+        await ctx.send("aaaaaaaaaaaaaaa")
+    else:
+        await ctx.send("aaa")
+    
 @bot.command()
 async def bingo(ctx: discord.ext.commands.Context, *args):
     """ Administer the Bingo """
