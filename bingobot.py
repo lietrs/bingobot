@@ -7,7 +7,7 @@ import re
 import os, json
 
 import bingobot_admin
-from bingo import bingodata, board, teams, discordbingo, WOM
+from bingo import bingodata, board, teams, discordbingo, WOM, tiles
 
 
 # Settings
@@ -48,46 +48,56 @@ def isTeamChannel(ctx):
 
 @bot.command()
 async def mvp(ctx: discord.ext.commands.Context, *args):
-
-    teamName = isTeamChannel(ctx)
+    teamNameSlug = isTeamChannel(ctx)
+    teamName = discordbingo.getTeamDisplayName(ctx.guild, teamNameSlug)
     if teamName == "":
         return # Not in a team channel
 
-
-    BingoComp = WOM.WOMc
     brd = board.load(ctx.guild)
 
     if len(args):
         skill = args[0]
-
-        await ctx.send(f"The {skill} mvp is ???")
+        WOM.WOMc.updateData(skill)
+        WOMData = WOM.WOMc.getTeamData(skill, teamName)
+        MVP = WOMData.MVP
+        await ctx.send(f"The {skill} mvp is {MVP}")
     else:
         skills = brd.getXpTiles()
 
         ret = []
         for skill in skills:
-            ret.append(f"The {skill} mvp is ???")
+            WOM.WOMc.updateData(skill)
+            WOMData = WOM.WOMc.getTeamData(skill, teamName)
+            MVP = WOMData.MVP
+            ret.append(f"The {skill} mvp is {MVP}")
         await ctx.send("\n".join(ret))
-
-
 
 
 @bot.command()
 async def xp(ctx: discord.ext.commands.Context, *args):
-
-    teamName = isTeamChannel(ctx)
+    teamNameSlug = isTeamChannel(ctx)
+    teamName = discordbingo.getTeamDisplayName(ctx.guild, teamNameSlug)
     if teamName == "":
         return # Not in a team channel
-
-    BingoComp = WOM.WOMc
+    updateAllXPTiles(ctx.guild)
     brd = board.load(ctx.guild)
-    tmd = teams.loadTeamBoard(ctx.guild, teamName)
+    tmd = teams.loadTeamBoard(ctx.guild, teamNameSlug)
+    XPTiles = brd.getXpTiles()
+    
 
     if len(args):
         skill = args[0]
-        skillTile = brd.getTileByName(skill)
-
-        await ctx.send(f"{skillTile.skill}: {skillTile.progressString(tmd.getTile(skill))}")
+        
+        if skill in XPTiles:
+            skillTile = brd.getTileByName(skill)
+            await ctx.send(f"{skillTile.skill}: {skillTile.progressString(tmd.getTile(skill))}")
+        else:
+            WOM.WOMc.updateData(skill)
+            WOMData = WOM.WOMc.getTeamData(skill, teamName)
+            xp = WOMData.TotalXP
+            formatxp = tiles.formatXP(xp)
+            await ctx.send(f"{skill}: {formatxp} xp")
+            return
     else:
         skills = brd.getXpTiles()
 
@@ -138,6 +148,7 @@ async def isBingoTaskApproved(bot, payload):
     guild = bot.get_guild(payload.guild_id)
     user = guild.get_member(payload.user_id)
     perms = discordbingo.userGetPermLevels(user)
+    channel = await bot.fetch_channel(payload.channel_id)
 
     if not discordbingo.PermLevel.Admin in perms and not discordbingo.PermLevel.Mod in perms:
         await channel.send(f'{user.name} you are not a mod!')
@@ -161,6 +172,7 @@ async def isBingoTaskUnapproved(bot, payload):
     guild = bot.get_guild(payload.guild_id)
     user = guild.get_member(payload.user_id)
     perms = discordbingo.userGetPermLevels(user)
+    channel = await bot.fetch_channel(payload.channel_id)
 
     if not discordbingo.PermLevel.Admin in perms and not discordbingo.PermLevel.Mod in perms:
         await channel.send(f'{user.name} you are not a mod!')
@@ -184,6 +196,7 @@ async def isBingoTaskDisputed(bot, payload):
     guild = bot.get_guild(payload.guild_id)
     user = guild.get_member(payload.user_id)
     perms = discordbingo.userGetPermLevels(user)
+    channel = await bot.fetch_channel(payload.channel_id)
 
     if not discordbingo.PermLevel.Admin in perms:
         await channel.send(f'{user.name} you are not a admin!')
@@ -202,6 +215,7 @@ async def isBingoTaskResolved(bot, payload):
     guild = bot.get_guild(payload.guild_id)
     user = guild.get_member(payload.user_id)
     perms = discordbingo.userGetPermLevels(user)
+    channel = await bot.fetch_channel(payload.channel_id)
 
     if not discordbingo.PermLevel.Admin in perms:
         await channel.send(f'{user.name} you are not a admin!')
@@ -226,9 +240,6 @@ async def on_raw_reaction_remove(payload):
         await isBingoTaskUnapproved(bot, payload)
     elif str(payload.emoji) == gDISPUTEREACT:
         await isBingoTaskResolved(bot, payload)
-
-
-
 
 async def updateAllXPTiles(server):
     brd = board.load(server)
@@ -274,7 +285,7 @@ async def updateWOM(ctx: discord.ext.commands.Context):
     if not discordbingo.ctxIsAdmin(ctx):
         return
 
-    # WOM.WOMg.updateGroup()
+    WOM.WOMg.updateGroup()
     await updateAllXPTiles(ctx.guild)
 
 

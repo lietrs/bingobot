@@ -1,6 +1,7 @@
 
 import os
 import json
+from bingo import bingodata
 from bingo.slugify import *
 
 
