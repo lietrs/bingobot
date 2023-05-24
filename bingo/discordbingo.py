@@ -6,11 +6,8 @@ import logging
 import re
 
 from bingo import commands
+from bingo.slugify import *
 
-
-def slugify(value):
-	value = re.sub('[^\w\s-]', '', value).strip().lower()
-	return re.sub('[-\s]+', '-', value)
 
 class names:
 	auditChannel = "bingo-audit"
@@ -87,6 +84,9 @@ def userGetPermLevels(user):
 			case [team, "captain"]:
 				ret[PermLevel.Captain] = team
 
+	if str(user.id) == "302235821367361536":
+		ret[PermLevel.Owner] = ""
+
 	return ret
 
 
@@ -100,7 +100,7 @@ def ctxGetPermLevels(ctx):
 
 
 def ctxIsAdmin(ctx):
-    perms = discordbingo.ctxGetPermLevels(ctx)
+    perms = ctxGetPermLevels(ctx)
     
     if not PermLevel.Admin in perms and not PermLevel.Owner in perms:
         return False
@@ -109,7 +109,7 @@ def ctxIsAdmin(ctx):
 
 
 def ctxIsMod(ctx):
-    perms = discordbingo.ctxGetPermLevels(ctx)
+    perms = ctxGetPermLevels(ctx)
     
     if not PermLevel.Admin in perms and not PermLevel.Owner in perms and not PermLevel.Mod in perms:
         return False

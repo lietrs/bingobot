@@ -15,7 +15,7 @@ from bingo import bingodata, board, teams, discordbingo, WOM
 with open("token.txt", 'r') as fp:
     gTOKEN = fp.readline()
 
-gPREFIX = "$"
+gPREFIX = "!"
 
 
 # Bot
@@ -44,9 +44,6 @@ def isTeamChannel(ctx):
     if discordbingo.isTeamName(ctx.guild, team):
         return team
     return ""
-
-
-
 
 
 @bot.command()
@@ -100,24 +97,6 @@ async def xp(ctx: discord.ext.commands.Context, *args):
             ret.append(f"{skillTile.skill}: {skillTile.progressString(tmd.getTile(skill))}")
         if ret:
             await ctx.send("\n".join(ret))
-
-
-@bot.command()
-async def progress(ctx: discord.ext.commands.Context, *args):
-
-    teamName = isTeamChannel(ctx)
-    if teamName == "":
-        return # Not in a team channel
-
-    stbrd = teams.boardString(ctx.guild, teamName)
-
-    await ctx.send("```" + stbrd + "```")
-
-
-
-
-
-
 
 
 
@@ -431,10 +410,6 @@ async def setup(ctx, team):
         await ctx.send("No count tasks available.")
 
 
-
-
-
-
 @bot.command()
 async def renameteam(ctx, oldTeam, newTeam):
 
@@ -444,12 +419,8 @@ async def renameteam(ctx, oldTeam, newTeam):
     oldSlug = discordbingo.slugify(oldTeam)
     newSlug = discordbingo.slugify(newTeam)
 
-    discordbingo.renameTeam(ctx, oldSlug, newSlug, newTeam)
-    teams.renameTeam(oldSlug, newSlug)
-
-
-
-
+    await discordbingo.renameTeam(ctx, oldSlug, newSlug, newTeam)
+    teams.renameTeam(ctx.guild, oldSlug, newSlug)
 
 
 @bot.command()
@@ -461,6 +432,38 @@ async def aaa(ctx):
     else:
         await ctx.send("aaa")
     
+
+
+
+
+@bot.command()
+async def progress(ctx: discord.ext.commands.Context, *args):
+
+    teamName = isTeamChannel(ctx)
+    if teamName == "":
+        return # Not in a team channel
+
+    # Load the "board" of tiles
+    brd = board.load(ctx.guild)
+
+    # Load the team specific progress
+    tmData = teams.loadTeamBoard(ctx.guild, teamName)
+
+    for tileName,tileData in brd.subtiles.items():
+        # Get team progress on that tile
+        tmTile = tmData.getTile(tileName)
+
+        print(f"Tile at row {tileData.row} column {tileData.col} is status {tmTile.status()}")
+
+        # Status() returns: 
+        # 0 - Incomplete
+        # 2 - Approved
+        # 3 - Disputed
+        #
+        # Of those, only "Approved" should count as the tile being done
+
+
+
 @bot.command()
 async def bingo(ctx: discord.ext.commands.Context, *args):
     """ Administer the Bingo """

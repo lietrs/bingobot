@@ -1,6 +1,7 @@
 
 import os
 import json
+from bingo.slugify import *
 
 
 
@@ -14,11 +15,13 @@ def initData(root):
 
 
 def _serverDir(server):
-	return os.path.join(DATADIR, str(server))
+	return os.path.join(DATADIR, slugify(str(server)))
 
+def _teamDir(server):
+	return os.path.join(_serverDir(server), "teams")
 
 def _teamFile(server, team):
-	return os.path.join(_serverDir(server), team + ".json")
+	return os.path.join(_teamDir(server), team + ".json")
 
 
 def _fieldsFile(server):
@@ -29,7 +32,7 @@ def _bingoFile(server):
 
 
 def initServer(server):
-	os.makedirs(_serverDir(server), exist_ok=True)
+	os.makedirs(_teamDir(server), exist_ok=True)
 
 
 
