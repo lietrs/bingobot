@@ -5,6 +5,7 @@ import asyncio
 import logging
 import re 
 import os, json
+from PIL import Image #pip install pillow
 
 import bingobot_admin
 from bingo import bingodata, board, teams, discordbingo, WOM, tiles
@@ -449,7 +450,7 @@ async def aaa(ctx):
 
 @bot.command()
 async def progress(ctx: discord.ext.commands.Context, *args):
-
+    print("--------------")
     teamName = isTeamChannel(ctx)
     if teamName == "":
         return # Not in a team channel
@@ -460,11 +461,15 @@ async def progress(ctx: discord.ext.commands.Context, *args):
     # Load the team specific progress
     tmData = teams.loadTeamBoard(ctx.guild, teamName)
 
+    bytes, points = teams.fillProgressBoard(tmData, brd, ctx.guild)
+    dBoard = discord.File(bytes, filename="boardImg.png")
+
+
     for tileName,tileData in brd.subtiles.items():
         # Get team progress on that tile
         tmTile = tmData.getTile(tileName)
 
-        print(f"Tile at row {tileData.row} column {tileData.col} is status {tmTile.status()}")
+        print(f"{tileData.description} at row {tileData.row} column {tileData.col} is status {tmTile.status()}")
 
         # Status() returns: 
         # 0 - Incomplete
@@ -472,6 +477,8 @@ async def progress(ctx: discord.ext.commands.Context, *args):
         # 3 - Disputed
         #
         # Of those, only "Approved" should count as the tile being done
+    
+    await ctx.send(f"{teamName}'s' board with {points} points", file=dBoard,)
 
 
 
