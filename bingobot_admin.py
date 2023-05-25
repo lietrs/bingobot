@@ -819,10 +819,10 @@ async def bingo_teams_createapprovechannel(ctx: discord.ext.commands.Context, au
 
 bingo_commands = {
 	"who": bingo_who,
-	# "init": (discordbingo.PermLevel.Owner, bingo_init),
-	# "cleanup": (discordbingo.PermLevel.Owner, bingo_cleanup),
-	"init": bingo_init,
-	"cleanup": bingo_cleanup,
+	"init": (discordbingo.PermLevel.Owner, bingo_init),
+	"cleanup": (discordbingo.PermLevel.Owner, bingo_cleanup),
+	# "init": bingo_init,
+	# "cleanup": bingo_cleanup,
 	"start": (discordbingo.PermLevel.Admin, bingo_start),
 	"end": (discordbingo.PermLevel.Admin, bingo_end),
 	"teams": (discordbingo.PermLevel.Mod, {
@@ -877,13 +877,11 @@ bingo_commands = {
 async def command(ctx: discord.ext.commands.Context, args):
 	"""Administrator tools for managing the bingo"""
 	auth = discordbingo.ctxGetPermLevels(ctx)
-	# mauth = max(auth.keys())
+	mauth = max(auth.keys())
 
-	mauth = discordbingo.PermLevel.Owner
-
-	# if mauth < discordbingo.PermLevel.Captain:
-	# 	print(f"Denied. {auth}")
-	# 	return # Silently fail
+	if mauth < discordbingo.PermLevel.Captain:
+		print(f"Denied. {auth}")
+		return # Silently fail
 
 	try:
 		f, ar, hlp = commands.Lookup(mauth, bingo_commands, args)

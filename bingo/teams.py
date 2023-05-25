@@ -49,18 +49,22 @@ def _subtileChanged(brd, tmData, tileName, subtile):
 	brdTile = brd.getTileByName(tileName)
 	tileStatus = tmData.getTile(tileName)
 
+	ret = []
+
 	if tileStatus.status() == ApproveStatus.Disputed:
 		# Tile already in dispute
-		return
+		return []
 
 	if brdTile.isComplete(tileStatus):
 		if tileStatus.status() != ApproveStatus.Approved:
-			_approveTile(brd, tmData, tileName)
+			ret += _approveTile(brd, tmData, tileName)
 	else:
 		if tileStatus.status() == ApproveStatus.Approved:
 			_unapproveTile(brd, tmData, tileName)
 
 	tmData.setTile(tileName, tileStatus)
+
+	return ret
 
 
 def _onTileStatusChange(brd, tmData, tileName):
@@ -69,13 +73,17 @@ def _onTileStatusChange(brd, tmData, tileName):
 
 		split = tileName.split(".")
 		parentTile = ".".join(split[0:-1])
-		_subtileChanged(brd, tmData, parentTile, split[-1])
+		return _subtileChanged(brd, tmData, parentTile, split[-1])
+
+	return []
 
 
 def _approveTile(brd, tmData, tileName, mod = "BingoBot"):
 
 	if tmData.approve(tileName, mod):
-		_onTileStatusChange(brd, tmData, tileName)
+		return [tileName] + _onTileStatusChange(brd, tmData, tileName)
+
+	return []
 
 def _unapproveTile(brd, tmData, tileName, mod = "BingoBot"):
 
@@ -97,9 +105,11 @@ def approveTile(server, team, tileName, mod = "BingoBot"):
 	brd = board.load(server)
 	tmData = loadTeamBoard(server, team)
 
-	_approveTile(brd, tmData, tileName, mod)
+	ret = _approveTile(brd, tmData, tileName, mod)
 
 	saveTeamBoard(server, team, tmData)
+
+	return ret
 
 def unapproveTile(server, team, tileName, mod = "BingoBot"):
 	brd = board.load(server)

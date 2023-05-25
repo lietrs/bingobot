@@ -160,8 +160,12 @@ async def isBingoTaskApproved(bot, payload):
             await channel.send(f'{user.name} you are in that team!')
             return
 
-    teams.approveTile(guild, team, tile, user)
-    await discordbingo.auditLogGuild(guild, user, f"Approved tile {tile} for team {team}")
+    tilesApproved = teams.approveTile(guild, team, tile, user)
+
+    if len(tilesApproved) > 1:
+        for tn in tilesApproved[1:]:
+            await discordbingo.auditLogGuild(guild, user, f"Tile {tn} for team {team} was completed.")
+
 
 
 async def isBingoTaskUnapproved(bot, payload):
@@ -311,6 +315,8 @@ class TaskView(discord.ui.View):
         else:
             task_key = section_key
 
+        return task_key
+
     def update(self):
         brd = board.load(self.guild)
         task = brd.getTileByName(self.taskKey())
@@ -385,12 +391,16 @@ class TaskView(discord.ui.View):
 
         return embed
 
-@bot.command()
-async def setup(ctx, team):
-    if not discordbingo.ctxIsMod(ctx):
-        return
 
-    brd = board.load(ctx.guild)
+
+async def sendCountTileSetup(server, team, approveChan = None):
+    if not approveChan:
+        approveChan = discord.utils.get(server.channels, name=discordbingo.names.teamApproval(team))
+
+        if not approveChan: 
+            return False
+
+    brd = board.load(server)
     allcounts = brd.getCountTiles()
 
     # Split into sections
@@ -413,13 +423,22 @@ async def setup(ctx, team):
             count_tasks.append(sl)
 
     if count_tasks:
-        view = TaskView(ctx.guild, team, count_tasks)
+        view = TaskView(server, team, count_tasks)
         embed = view.create_embed()
-        message = await ctx.send(embed=embed, view=view)
-        await view.wait()
+        message = await approveChan.send(embed=embed, view=view)
 
+        # await view.wait()
+        loop = asyncio.get_event_loop()
+        loop.create_task(view.wait())
     else:
-        await ctx.send("No count tasks available.")
+        pass
+
+@bot.command()
+async def bingocount(ctx, team):
+    if not discordbingo.ctxIsMod(ctx):
+        return
+
+    await sendCountTileSetup(ctx.guild, team)
 
 
 @bot.command()
@@ -463,22 +482,20 @@ async def progress(ctx: discord.ext.commands.Context, *args):
 
     bytes, points = teams.fillProgressBoard(tmData, brd, ctx.guild)
     dBoard = discord.File(bytes, filename="boardImg.png")
-
-
-    for tileName,tileData in brd.subtiles.items():
-        # Get team progress on that tile
-        tmTile = tmData.getTile(tileName)
-
-        print(f"{tileData.description} at row {tileData.row} column {tileData.col} is status {tmTile.status()}")
-
-        # Status() returns: 
-        # 0 - Incomplete
-        # 2 - Approved
-        # 3 - Disputed
-        #
-        # Of those, only "Approved" should count as the tile being done
     
     await ctx.send(f"{teamName}'s' board with {points} points", file=dBoard,)
+
+
+@bot.command()
+async def bingostart(ctx: discord.ext.commands.Context, *args):
+    auth = discordbingo.ctxGetPermLevels(ctx)
+
+    if not discordbingo.PermLevel.Owner in auth:
+        return
+
+    for team in discordbingo.listTeams(ctx.guild):
+        await bingobot_admin.bingo_teams_createapprovechannel(ctx, auth, [team])
+        await sendCountTileSetup(ctx.guild, team)
 
 
 
