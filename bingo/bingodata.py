@@ -1,7 +1,6 @@
 
 import os
 import json
-from bingo import bingodata
 from bingo.slugify import *
 
 
@@ -17,6 +16,15 @@ def initData(root):
 
 def _serverDir(server):
 	return os.path.join(DATADIR, slugify(str(server)))
+
+def _imgDir(server):
+	return os.path.join(_serverDir(server), "img")
+
+def _boardImgFile(server):
+	return os.path.join(_imgDir(server), "board.png")
+
+def _completeImgFile(server):
+	return os.path.join(_imgDir(server), "complete.png")
 
 def _teamDir(server):
 	return os.path.join(_serverDir(server), "teams")
@@ -50,7 +58,7 @@ def getBingoStatus(server):
 
 def setBingoStatus(server, status):
 
-	with open(bingodata._teamFile(server), "w") as f:
+	with open(_teamFile(server), "w") as f:
 		json.dump(status, f)
 
 def isBingoStarted(server):

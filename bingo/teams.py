@@ -3,7 +3,8 @@ import os
 import json
 from bingo import bingodata, tiles, board
 from bingo.teamdata import *
-
+from PIL import Image #pip install pillow
+from io import BytesIO
 
 # Save/Load Files
 
@@ -202,3 +203,52 @@ def boardString(server, team):
 		ret += "\n"
 
 	return ret
+
+def fillProgressBoard(teamData, board, server):
+	#boardsize = (1428,2000)
+	completesize = (200,200)
+	#tilesize = (286,232)
+	#boardstartpoint = (0,600)
+	boardRows = 5
+	boardCols = 5
+	#empty array
+	completed =  [[0 for i in range(boardCols)] for j in range(boardRows)]
+	points = 0
+	backgound = Image.open(bingodata._boardImgFile(server))
+	overlay = Image.open(bingodata._completeImgFile(server))
+	overlay = overlay.resize(completesize)
+	boardImg = backgound.copy()
+	for tileName,tileData in board.subtiles.items():
+		# Get team progress on that tile
+		tmTile = teamData.getTile(tileName)
+		#if tile completed
+		if tmTile.status() == 2:
+			col = tileData.col
+			row = tileData.row
+			completed[col][row] = 1
+			boardImg.paste(overlay, (43+(col*286),610+(row*232)), overlay)
+	bonusCol = 0
+	bonusRow = 0
+	for i in range(boardCols):
+		for j in range(boardRows):
+			if completed[i][j] == 1:
+				points += 1
+				bonusRow += 1
+		if bonusRow == boardRows:
+			points += 3
+		bonusRow = 0
+
+	for j in range(boardRows):
+		for i in range(boardCols):
+			if completed[i][j] == 1:
+				bonusCol += 1
+		if bonusCol == boardCols:
+			points += 3
+		bonusCol = 0
+
+
+
+	bytes = BytesIO()
+	boardImg.save(bytes, format="PNG")
+	bytes.seek(0)
+	return bytes, points
