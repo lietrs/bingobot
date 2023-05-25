@@ -802,10 +802,16 @@ async def bingo_teams_createapprovechannel(ctx: discord.ext.commands.Context, au
 				if isinstance(t2, tiles.TileSet):
 					for sl3, t3 in t2.subtiles.items():
 						# await chan.send(f"[{teamSlug}:{sl}.{sl2}.{sl3}] {t3.name}")
+						if isinstance(t3, tiles.XPTile) or isinstance(t3, tiles.CountTile):
+							continue
 						await chan.send(f"{t3.description}")
+				elif isinstance(t2, tiles.XPTile) or isinstance(t2, tiles.CountTile):
+					pass
 				else:
 					# await chan.send(f"[{teamSlug}:{sl}.{sl2}] {t2.name}")
 					await chan.send(f"{t2.description}")
+		elif isinstance(t, tiles.XPTile) or isinstance(t, tiles.CountTile):
+			pass
 		else:
 			# await chan.send(f"[{teamSlug}:{sl}] {t.name}")
 			await chan.send(f"{t.description}")
