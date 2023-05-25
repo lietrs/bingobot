@@ -161,6 +161,7 @@ async def isBingoTaskApproved(bot, payload):
             return
 
     tilesApproved = teams.approveTile(guild, team, tile, user)
+    await discordbingo.auditLogGuild(guild, user, f"Approved on tile {tile} for team {team}")
 
     if len(tilesApproved) > 1:
         for tn in tilesApproved[1:]:
@@ -295,10 +296,34 @@ async def updateWOM(ctx: discord.ext.commands.Context):
 
 
 
+async def addAmount(taskView, interaction, task_key):
+    message = await interaction.channel.send("Enter the value to add to the amount:")
+    try:
+        try:
+            response = await bot.wait_for("message", check=lambda m: m.author == interaction.user and m.channel == interaction.channel, timeout=60)
+            value = int(response.content)
+            teams.addProgress(taskView.guild, taskView.teamName, task_key, str(value))
+            await response.delete()
+
+            embed = taskView.create_embed()
+            # await interaction.response.edit_message(content=None, embed=embed, view=self)
+            # Need a way to edit the view! 
+            await taskView.message.edit(content=None, embed=embed, view=taskView)
+            # await interaction.followup.send(f"Added {value} to the amount.")
+        except asyncio.TimeoutError:
+            value = 0
+
+    except ValueError:
+        await interaction.followup.send("Invalid input. Please enter a valid number.")
+    except:
+        pass
+
+    await message.delete()
+
 
 class TaskView(discord.ui.View):
     def __init__(self, guild, teamName, count_tasks):
-        super().__init__()
+        super().__init__(timeout=None)
         self.count_tasks = count_tasks
         self.guild = guild
         self.teamName = teamName
@@ -348,20 +373,9 @@ class TaskView(discord.ui.View):
         
         task_key = self.taskKey()
 
-        try:
-            message = await interaction.channel.send("Enter the value to add to the amount:")
-            response = await bot.wait_for("message", check=lambda m: m.author == interaction.user and m.channel == interaction.channel)
-            value = int(response.content)
+        loop = asyncio.get_event_loop()
+        loop.create_task(addAmount(self, interaction, task_key))
 
-            teams.addProgress(self.guild, self.teamName, task_key, str(value))
-
-            embed = self.create_embed()
-            await interaction.response.edit_message(content=None, embed=embed, view=self)
-            await message.delete()
-            await response.delete()
-            await interaction.followup.send(f"Added {value} to the amount.")
-        except ValueError:
-            await interaction.followup.send("Invalid input. Please enter a valid number.")
 
     def create_embed(self):
         brd = board.load(self.guild)
@@ -495,6 +509,17 @@ async def bingostart(ctx: discord.ext.commands.Context, *args):
 
     for team in discordbingo.listTeams(ctx.guild):
         await bingobot_admin.bingo_teams_createapprovechannel(ctx, auth, [team])
+        await sendCountTileSetup(ctx.guild, team)
+
+
+@bot.command()
+async def bingobuttons(ctx: discord.ext.commands.Context, *args):
+    auth = discordbingo.ctxGetPermLevels(ctx)
+
+    if not discordbingo.PermLevel.Owner in auth:
+        return
+
+    for team in discordbingo.listTeams(ctx.guild):
         await sendCountTileSetup(ctx.guild, team)
 
 
