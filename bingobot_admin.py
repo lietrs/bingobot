@@ -1,6 +1,6 @@
 
-import discord
-from discord.ext import commands
+import nextcord
+from nextcord.ext import commands
 import asyncio
 import logging
 import re
@@ -12,7 +12,7 @@ goodReaction = "\N{White Heavy Check Mark}"
 badReaction = "\N{Negative Squared Cross Mark}"
 
 
-async def bingo_who(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_who(ctx: nextcord.ext.commands.Context, auth, args):
 	"""Basic user diagnostics"""
 
 	u = ctx.author
@@ -31,7 +31,7 @@ async def bingo_who(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.reply(retstr)
 
 
-async def bingo_init(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_init(ctx: nextcord.ext.commands.Context, auth, args):
 	"""Initialise a new bingo
 
 	Creates the basic channels and roles required for the bingo"""
@@ -50,7 +50,7 @@ async def bingo_init(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.message.add_reaction(goodReaction)
 
 
-async def bingo_cleanup(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_cleanup(ctx: nextcord.ext.commands.Context, auth, args):
 	"""Initialise a new bingo
 
 	Removes all the bingo specific channels, teams should be deleted first"""
@@ -64,7 +64,7 @@ async def bingo_cleanup(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.message.add_reaction(goodReaction)
 
 
-async def bingo_start(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_start(ctx: nextcord.ext.commands.Context, auth, args):
 	"""Start the bingo!
 
 	This sets the status to started, which is used to make sure normal people can't see the tiles early"""
@@ -79,7 +79,7 @@ async def bingo_start(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.message.add_reaction(goodReaction)
 
 
-async def bingo_end(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_end(ctx: nextcord.ext.commands.Context, auth, args):
 	"""End the bingo :'(
 
 	Currently only sets the ended flag, doesn't stop any commands functioning"""
@@ -95,13 +95,13 @@ async def bingo_end(ctx: discord.ext.commands.Context, auth, args):
 
 
 
-async def bingo_teams(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_teams(ctx: nextcord.ext.commands.Context, auth, args):
 	""" Administer bingo teams """
 	
 	await bingo_teams_list(ctx, auth, args)
 
 
-async def bingo_teams_list(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_teams_list(ctx: nextcord.ext.commands.Context, auth, args):
 	""" List the bingo teams
 
 	Usage: !bingo teams list"""
@@ -110,7 +110,7 @@ async def bingo_teams_list(ctx: discord.ext.commands.Context, auth, args):
 
 	retstr = f"{len(teams)} team(s) in the bingo: "
 	for t in teams: 
-		cpt = discord.utils.get(ctx.guild.roles, name=discordbingo.names.captainRole(t))
+		cpt = nextcord.utils.get(ctx.guild.roles, name=discordbingo.names.captainRole(t))
 		u = discordbingo.getTeamMembers(ctx.guild, t)
 
 		ustr = []
@@ -128,7 +128,7 @@ async def bingo_teams_list(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.send(retstr)
 
 
-async def bingo_teams_add(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_teams_add(ctx: nextcord.ext.commands.Context, auth, args):
 	"""Add a team
 
 	Usage: !bingo teams add SLUG NAME
@@ -145,7 +145,7 @@ async def bingo_teams_add(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.message.add_reaction(goodReaction)
 
 
-async def bingo_teams_rename(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_teams_rename(ctx: nextcord.ext.commands.Context, auth, args):
 	"""Rename a team
 
 	Usage: !bingo teams rename OLDSLUG NEWSLUG NEWNAME
@@ -168,7 +168,7 @@ async def bingo_teams_rename(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.message.add_reaction(goodReaction)
 
 
-async def bingo_teams_remove(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_teams_remove(ctx: nextcord.ext.commands.Context, auth, args):
 	"""Remove a team
 
 	Usage: !bingo teams remove TEAM
@@ -185,12 +185,12 @@ async def bingo_teams_remove(ctx: discord.ext.commands.Context, auth, args):
 
 
 
-async def bingo_players(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_players(ctx: nextcord.ext.commands.Context, auth, args):
 	"""Add/delete players from the bingo"""
 
 	await bingo_teams_list(ctx, auth, args)
 
-async def bingo_players_list(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_players_list(ctx: nextcord.ext.commands.Context, auth, args):
 	"""List all the participants of the bingo
 
 	Usage: !bingo players list"""
@@ -198,7 +198,7 @@ async def bingo_players_list(ctx: discord.ext.commands.Context, auth, args):
 	await bingo_teams_list(ctx, auth, args)
 
 
-async def bingo_players_add(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_players_add(ctx: nextcord.ext.commands.Context, auth, args):
 	"""Add a player to the bingo
 
 	Usage: !bingo players add TEAM PLAYER
@@ -226,7 +226,7 @@ async def bingo_players_add(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.message.add_reaction(goodReaction)
 
 
-async def bingo_players_remove(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_players_remove(ctx: nextcord.ext.commands.Context, auth, args):
 	"""Removes a player from the bingo
 
 	Usage: !bingo players remove PLAYER
@@ -252,7 +252,7 @@ async def bingo_players_remove(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.message.add_reaction(goodReaction)
 
 
-async def bingo_teams_progress(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_teams_progress(ctx: nextcord.ext.commands.Context, auth, args):
 	"""retrieve details on team progress
 
 	Usage: !bingo teams progress TEAM
@@ -279,7 +279,7 @@ async def bingo_teams_progress(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.send("\n".join(tstrs))
 
 
-async def bingo_teams_board(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_teams_board(ctx: nextcord.ext.commands.Context, auth, args):
 	"""retrieve details on team progress
 
 	Usage: !bingo teams board TEAM
@@ -302,13 +302,13 @@ async def bingo_teams_board(ctx: discord.ext.commands.Context, auth, args):
 
 
 
-async def bingo_tiles(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_tiles(ctx: nextcord.ext.commands.Context, auth, args):
 	""" Administer bingo tiles """
 
 	await bingo_tiles_list(ctx, auth, args)
 
 
-async def bingo_tiles_list(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_tiles_list(ctx: nextcord.ext.commands.Context, auth, args):
 	""" List bingo tiles 
 
 	Usage: !bingo tiles list"""
@@ -322,7 +322,7 @@ async def bingo_tiles_list(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.send(retstr)
 
 
-async def bingo_tiles_list_xp(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_tiles_list_xp(ctx: nextcord.ext.commands.Context, auth, args):
 	""" List bingo XP tiles 
 
 	Usage: !bingo tiles list xp"""
@@ -337,7 +337,7 @@ async def bingo_tiles_list_xp(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.send(retstr)
 
 
-async def bingo_tiles_list_count(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_tiles_list_count(ctx: nextcord.ext.commands.Context, auth, args):
 	""" List bingo Count tiles 
 
 	Usage: !bingo tiles list count"""
@@ -352,7 +352,7 @@ async def bingo_tiles_list_count(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.send(retstr)
 
 
-async def bingo_tiles_find_description(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_tiles_find_description(ctx: nextcord.ext.commands.Context, auth, args):
 	""" Find a bingo tile by description 
 
 	Usage: !bingo tiles find description DESCRIPTION"""
@@ -363,7 +363,7 @@ async def bingo_tiles_find_description(ctx: discord.ext.commands.Context, auth, 
 	await ctx.send(f"\n[{tln}] {brd.getTileByName(tln).basicString()}")
 
 
-async def bingo_tiles_add(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_tiles_add(ctx: nextcord.ext.commands.Context, auth, args):
 	""" Add bingo tiles - Basic tile
 
 	Usage: !bingo tiles add basic SLUG NAME DESCRIPTION X Y"""
@@ -386,7 +386,7 @@ async def bingo_tiles_add(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.message.add_reaction(goodReaction)
 
 
-async def bingo_tiles_add_any(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_tiles_add_any(ctx: nextcord.ext.commands.Context, auth, args):
 	""" Add bingo tiles - AnyOf tile
 
 	Usage: !bingo tiles add any SLUG NAME DESCRIPTION X Y"""
@@ -409,7 +409,7 @@ async def bingo_tiles_add_any(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.message.add_reaction(goodReaction)
 
 
-async def bingo_tiles_add_all(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_tiles_add_all(ctx: nextcord.ext.commands.Context, auth, args):
 	""" Add bingo tiles - AllOf tile
 
 	Usage: !bingo tiles add any SLUG NAME DESCRIPTION X Y"""
@@ -432,7 +432,7 @@ async def bingo_tiles_add_all(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.message.add_reaction(goodReaction)
 
 
-async def bingo_tiles_add_xp(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_tiles_add_xp(ctx: nextcord.ext.commands.Context, auth, args):
 	""" Add bingo tiles - XP tile
 
 	Usage: !bingo tiles add xp SKILL XPREQUIRED DESCRIPTION X Y"""
@@ -458,7 +458,7 @@ async def bingo_tiles_add_xp(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.message.add_reaction(goodReaction)
 
 
-async def bingo_tiles_add_multi(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_tiles_add_multi(ctx: nextcord.ext.commands.Context, auth, args):
 	""" Add bingo tiles - Multiple counts required
 
 	Usage: !bingo tiles add multi SLUG NAME DESCRIPTION QTY X Y"""
@@ -480,7 +480,7 @@ async def bingo_tiles_add_multi(ctx: discord.ext.commands.Context, auth, args):
 
 	await ctx.message.add_reaction(goodReaction)
 
-async def bingo_tiles_add_items(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_tiles_add_items(ctx: nextcord.ext.commands.Context, auth, args):
 	""" Add bingo tiles - Multiple Items Required
 
 	Usage: !bingo tiles add items SLUG NAME DESCRIPTION X Y ITEM1 ITEM2 ..."""
@@ -503,7 +503,7 @@ async def bingo_tiles_add_items(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.message.add_reaction(goodReaction)
 
 
-async def bingo_tiles_remove(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_tiles_remove(ctx: nextcord.ext.commands.Context, auth, args):
 	""" Remove bingo tiles 
 
 	Usage: !bingo tiles remove TILE
@@ -513,7 +513,7 @@ async def bingo_tiles_remove(ctx: discord.ext.commands.Context, auth, args):
 	board.removeTile(ctx.guild, args[0])
 
 
-async def bingo_tiles_approve(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_tiles_approve(ctx: nextcord.ext.commands.Context, auth, args):
 	""" Mark bingo tile status 
 
 	Usage: !bingo approve TEAM TILE [MOD]
@@ -542,7 +542,7 @@ async def bingo_tiles_approve(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.message.add_reaction(goodReaction)
 
 
-async def bingo_tiles_dispute(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_tiles_dispute(ctx: nextcord.ext.commands.Context, auth, args):
 	""" Mark bingo tile status 
 
 	Usage: !bingo dispute TEAM TILE [MOD]
@@ -569,7 +569,7 @@ async def bingo_tiles_dispute(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.message.add_reaction(goodReaction)
 
 
-async def bingo_tiles_unapprove(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_tiles_unapprove(ctx: nextcord.ext.commands.Context, auth, args):
 	""" Mark bingo tile status 
 
 	Usage: !bingo unapprove TEAM TILE [MOD]
@@ -596,7 +596,7 @@ async def bingo_tiles_unapprove(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.message.add_reaction(goodReaction)
 
 
-async def bingo_tiles_resolve(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_tiles_resolve(ctx: nextcord.ext.commands.Context, auth, args):
 	""" Mark bingo tile status 
 
 	Usage: !bingo resolve TEAM TILE [MOD]
@@ -623,7 +623,7 @@ async def bingo_tiles_resolve(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.message.add_reaction(goodReaction)
 
 
-async def bingo_tiles_approvers(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_tiles_approvers(ctx: nextcord.ext.commands.Context, auth, args):
 	""" Get the list of mods who approved a tile 
 
 	Usage: !bingo approvers TEAM TILE
@@ -657,7 +657,7 @@ async def bingo_tiles_approvers(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.send(message)
 
 
-async def bingo_tiles_setprogress(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_tiles_setprogress(ctx: nextcord.ext.commands.Context, auth, args):
 	""" Set progress for a bingo tile 
 
 	Usage: !bingo tiles setprogress TEAM TILE PROGRESS
@@ -682,7 +682,7 @@ async def bingo_tiles_setprogress(ctx: discord.ext.commands.Context, auth, args)
 	await ctx.message.add_reaction(goodReaction)
 
 
-async def bingo_tiles_addprogress(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_tiles_addprogress(ctx: nextcord.ext.commands.Context, auth, args):
 	""" Add progress to a bingo tile 
 
 	Usage: !bingo tiles addprogress TEAM TILE PROGRESS
@@ -709,7 +709,7 @@ async def bingo_tiles_addprogress(ctx: discord.ext.commands.Context, auth, args)
 
 
 
-async def bingo_tiles_about(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_tiles_about(ctx: nextcord.ext.commands.Context, auth, args):
 	""" Gives extra info about a bingo tile
 
 	Usage: !bingo tiles about TILE
@@ -723,7 +723,7 @@ async def bingo_tiles_about(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.send(tld.about())
 
 
-async def bingo_tiles_progress(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_tiles_progress(ctx: nextcord.ext.commands.Context, auth, args):
 	""" Overall progress of all teams on a bingo tile
 
 	Usage: !bingo tiles progress TILE
@@ -745,7 +745,7 @@ async def bingo_tiles_progress(ctx: discord.ext.commands.Context, auth, args):
 	await ctx.send("\n".join(res))
 
 
-async def bingo_tiles_createapprovalpost(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_tiles_createapprovalpost(ctx: nextcord.ext.commands.Context, auth, args):
 	""" Create dummy approval post
 
 	Usage: !bingo tiles createapprovalpost TEAM TILE
@@ -765,7 +765,7 @@ async def bingo_tiles_createapprovalpost(ctx: discord.ext.commands.Context, auth
 
 
 
-async def bingo_teams_createapprovechannel(ctx: discord.ext.commands.Context, auth, args):
+async def bingo_teams_createapprovechannel(ctx: nextcord.ext.commands.Context, auth, args):
 	""" Create dummy approval post
 
 	Usage: !bingo teams createapprovalpost TEAM
@@ -774,21 +774,21 @@ async def bingo_teams_createapprovechannel(ctx: discord.ext.commands.Context, au
 
 	teamSlug = args[0]
 
-	chat = discord.utils.get(ctx.guild.channels, name=discordbingo.names.teamChat(teamSlug))
+	chat = nextcord.utils.get(ctx.guild.channels, name=discordbingo.names.teamChat(teamSlug))
 
 	if not chat:
 		raise NoTeamFound()
 
-	modRole = discord.utils.get(ctx.guild.roles, name=discordbingo.names.modRole)
-	adminRole = discord.utils.get(ctx.guild.roles, name=discordbingo.names.adminRole)
-	ownerRole = discord.utils.get(ctx.guild.roles, name=discordbingo.names.ownerRole)
+	modRole = nextcord.utils.get(ctx.guild.roles, name=discordbingo.names.modRole)
+	adminRole = nextcord.utils.get(ctx.guild.roles, name=discordbingo.names.adminRole)
+	ownerRole = nextcord.utils.get(ctx.guild.roles, name=discordbingo.names.ownerRole)
 
 	cat = chat.category
 	overwrites = {
-		ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False),
-		modRole: discord.PermissionOverwrite(read_messages=True),
-		adminRole: discord.PermissionOverwrite(read_messages=True),
-		ownerRole: discord.PermissionOverwrite(read_messages=True)
+		ctx.guild.default_role: nextcord.PermissionOverwrite(read_messages=False),
+		modRole: nextcord.PermissionOverwrite(read_messages=True),
+		adminRole: nextcord.PermissionOverwrite(read_messages=True),
+		ownerRole: nextcord.PermissionOverwrite(read_messages=True)
 	}
 
 	chan = await ctx.guild.create_text_channel(discordbingo.names.teamApproval(teamSlug), category=cat, overwrites=overwrites)
@@ -874,7 +874,7 @@ bingo_commands = {
 	"approvers": bingo_tiles_approvers
 }
 
-async def command(ctx: discord.ext.commands.Context, args):
+async def command(ctx: nextcord.ext.commands.Context, args):
 	"""Administrator tools for managing the bingo"""
 	auth = discordbingo.ctxGetPermLevels(ctx)
 	mauth = max(auth.keys())
