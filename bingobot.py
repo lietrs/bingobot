@@ -21,10 +21,9 @@ with open("token.txt", 'r') as fp:
 gPREFIX = "!"
 gBOTREADY = False
 
-#guildID = 1002860611409039400 #cuties
-guildID = 1109838269430124636 #test
-#standingsChannelID = 1111707650388934718 #cuties
-standingsChannelID = 1111742455390412830 #test
+guildID = 1002860611409039400 #cuties
+standingsChannelID = 1111707650388934718 #cuties
+
 
 # Bot
 intents = nextcord.Intents.default()
@@ -39,7 +38,7 @@ gDISPUTEREACT = '🏴󠁧󠁢󠁳󠁣󠁴󠁿'
 
 @tasks.loop(seconds=3600)
 async def intervalTasks(guild):
-    #WOM.WOMg.updateGroup()
+    WOM.WOMg.updateGroup()
     await updateAllXPTiles(guild)
 
     nowHr = datetime.now().strftime('%H')
