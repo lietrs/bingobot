@@ -5,6 +5,7 @@ from io import StringIO
 import time
 import json
 
+from bingo import discordbingo
 class WOMcomp:
 	
     def __init__(self, id:str):
@@ -38,8 +39,13 @@ class WOMcomp:
         if not self.DataTeamLists:
             self.updateData(skill)
         Lines = len(self.DataTeamLists)
+        #solve ' issues
+        slugTeamName = discordbingo.slugify(teamName)
         for Line in range(Lines):
-            if self.DataTeamLists[Line].teamName == teamName:
+            dataTeamName = self.DataTeamLists[Line].teamName
+            #solve ' issues
+            slugDataTeamName = discordbingo.slugify(dataTeamName)
+            if slugDataTeamName == slugTeamName:
                 return self.DataTeamLists[Line]
 
     
@@ -95,7 +101,7 @@ class WOMGroup:
             
 #init
 
-with open("./data/WOM.json", 'r') as f:
+with open("./config/WOM.json", 'r') as f:
     WOMjson = json.load(f)
     WOMid = WOMjson['competition id']
     WOMgid = WOMjson['group id']

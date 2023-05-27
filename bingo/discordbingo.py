@@ -1,6 +1,6 @@
 
-import discord
-import discord.ext.commands
+import nextcord
+import nextcord.ext.commands
 import asyncio
 import logging
 import re
@@ -118,7 +118,7 @@ def ctxIsMod(ctx):
 
 
 async def auditLogGuild(guild, user, message):
-	auditch = discord.utils.get(guild.channels, name=names.auditChannel)
+	auditch = nextcord.utils.get(guild.channels, name=names.auditChannel)
 
 	m = f"[{str(user)}]: {message}"
 
@@ -128,7 +128,7 @@ async def auditLogGuild(guild, user, message):
 
 
 async def auditLog(ctx, message):
-	auditch = discord.utils.get(ctx.guild.channels, name=names.auditChannel)
+	auditch = nextcord.utils.get(ctx.guild.channels, name=names.auditChannel)
 
 	m = f"[{str(ctx.author)} in {ctx.channel.name}]: {message}"
 
@@ -139,7 +139,7 @@ async def auditLog(ctx, message):
 
 
 async def sendToTeam(guild, team, message):
-	teamch = discord.utils.get(guild.channels, name=names.teamChat(team))
+	teamch = nextcord.utils.get(guild.channels, name=names.teamChat(team))
 
 	await teamch.send(message)
 
@@ -162,7 +162,7 @@ async def bingoInit(ctx, bot, owner):
 	newroles = []
 
 	for r in newrolenames:
-		rr = discord.utils.get(ctx.guild.roles, name=r)
+		rr = nextcord.utils.get(ctx.guild.roles, name=r)
 		try:
 			if not rr:
 				rr = await ctx.guild.create_role(name=r)
@@ -178,20 +178,20 @@ async def bingoInit(ctx, bot, owner):
 		await owner.add_roles(ownerRole)
 
 	modOverwrites = {
-		ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False),
-		adminRole: discord.PermissionOverwrite(read_messages=True),
-		ownerRole: discord.PermissionOverwrite(read_messages=True),
-		modRole: discord.PermissionOverwrite(read_messages=True)
+		ctx.guild.default_role: nextcord.PermissionOverwrite(read_messages=False),
+		adminRole: nextcord.PermissionOverwrite(read_messages=True),
+		ownerRole: nextcord.PermissionOverwrite(read_messages=True),
+		modRole: nextcord.PermissionOverwrite(read_messages=True)
 	}
 
 	adminOverwrites = {
-		ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False),
-		adminRole: discord.PermissionOverwrite(read_messages=True),
-		ownerRole: discord.PermissionOverwrite(read_messages=True)
+		ctx.guild.default_role: nextcord.PermissionOverwrite(read_messages=False),
+		adminRole: nextcord.PermissionOverwrite(read_messages=True),
+		ownerRole: nextcord.PermissionOverwrite(read_messages=True)
 	}
 
 	category = None
-	adminchat = discord.utils.get(ctx.guild.channels, name=names.adminChat)
+	adminchat = nextcord.utils.get(ctx.guild.channels, name=names.adminChat)
 	if adminchat:
 		category = adminchat.category
 	else:
@@ -215,7 +215,7 @@ async def bingoInit(ctx, bot, owner):
 async def bingoCleanup(ctx):
 
 	for ch in [names.adminChat, names.modChat]:
-		chan = discord.utils.get(ctx.guild.channels, name=ch)
+		chan = nextcord.utils.get(ctx.guild.channels, name=ch)
 		try:
 			await chan.delete()
 		except:
@@ -224,7 +224,7 @@ async def bingoCleanup(ctx):
 	# await auditLog(ctx, "Channels deleted. Audit log is retained, please delete manually")
 
 	for r in [names.adminRole, names.ownerRole, names.modRole]:
-		rol = discord.utils.get(ctx.guild.roles, name=r)
+		rol = nextcord.utils.get(ctx.guild.roles, name=r)
 		try:
 			await rol.delete()
 		except:
@@ -244,13 +244,13 @@ def listTeams(guild):
 	return ret
 
 def getTeamDisplayName(guild, team):
-	chat = discord.utils.get(guild.channels, name=names.teamChat(team))
+	chat = nextcord.utils.get(guild.channels, name=names.teamChat(team))
 	if not chat:
 		raise NoTeamFound()
 	return chat.category.name[len("Bingo - "):]
 
 def isTeamName(guild, team):
-	chat = discord.utils.get(guild.channels, name=names.teamChat(team))
+	chat = nextcord.utils.get(guild.channels, name=names.teamChat(team))
 	if not chat:
 		return False
 	return True
@@ -263,24 +263,24 @@ async def addTeam(ctx, teamSlug, teamName):
 
 	role = await guild.create_role(name = names.memberRole(teamSlug))
 	# cptRole = await guild.create_role(name = names.captainRole(teamSlug))
-	modRole = discord.utils.get(guild.roles, name=names.modRole)
-	adminRole = discord.utils.get(guild.roles, name=names.adminRole)
-	ownerRole = discord.utils.get(guild.roles, name=names.ownerRole)
+	modRole = nextcord.utils.get(guild.roles, name=names.modRole)
+	adminRole = nextcord.utils.get(guild.roles, name=names.adminRole)
+	ownerRole = nextcord.utils.get(guild.roles, name=names.ownerRole)
 
 	overwrites = {
-		guild.default_role: discord.PermissionOverwrite(read_messages=False),
-		role: discord.PermissionOverwrite(read_messages=True),
-		modRole: discord.PermissionOverwrite(read_messages=False),
-		adminRole: discord.PermissionOverwrite(read_messages=False),
-		ownerRole: discord.PermissionOverwrite(read_messages=True)
+		guild.default_role: nextcord.PermissionOverwrite(read_messages=False),
+		role: nextcord.PermissionOverwrite(read_messages=True),
+		modRole: nextcord.PermissionOverwrite(read_messages=False),
+		adminRole: nextcord.PermissionOverwrite(read_messages=False),
+		ownerRole: nextcord.PermissionOverwrite(read_messages=True)
 	}
 
 	overwritesSubmissions = {
-		guild.default_role: discord.PermissionOverwrite(read_messages=False),
-		role: discord.PermissionOverwrite(read_messages=True),
-		modRole: discord.PermissionOverwrite(read_messages=True),
-		adminRole: discord.PermissionOverwrite(read_messages=True),
-		ownerRole: discord.PermissionOverwrite(read_messages=True)
+		guild.default_role: nextcord.PermissionOverwrite(read_messages=False),
+		role: nextcord.PermissionOverwrite(read_messages=True),
+		modRole: nextcord.PermissionOverwrite(read_messages=True),
+		adminRole: nextcord.PermissionOverwrite(read_messages=True),
+		ownerRole: nextcord.PermissionOverwrite(read_messages=True)
 	}
 
 	category = await guild.create_category(names.teamCategory(teamName), overwrites=overwrites)
@@ -293,13 +293,13 @@ async def addTeam(ctx, teamSlug, teamName):
 
 async def removeTeam(ctx, teamSlug):
 
-	chat = discord.utils.get(ctx.guild.channels, name=names.teamChat(teamSlug))
+	chat = nextcord.utils.get(ctx.guild.channels, name=names.teamChat(teamSlug))
 
 	if not chat:
 		raise NoTeamFound()
 
 	for r in [names.memberRole(teamSlug), names.captainRole(teamSlug)]:
-		rol = discord.utils.get(ctx.guild.roles, name=r)
+		rol = nextcord.utils.get(ctx.guild.roles, name=r)
 		try:
 			await rol.delete()
 		except:
@@ -308,7 +308,7 @@ async def removeTeam(ctx, teamSlug):
 	cat = chat.category
 
 	for ch in [names.teamChat(teamSlug), names.teamVC(teamSlug), names.teamSubmissionsChan(teamSlug), names.teamApproval(teamSlug)]:
-		chan = discord.utils.get(ctx.guild.channels, name=ch)
+		chan = nextcord.utils.get(ctx.guild.channels, name=ch)
 		try:
 			await chan.delete()
 		except:
@@ -323,7 +323,7 @@ async def removeTeam(ctx, teamSlug):
 
 
 def getTeamMembers(guild, teamSlug):
-	role = discord.utils.get(guild.roles, name=names.memberRole(teamSlug))
+	role = nextcord.utils.get(guild.roles, name=names.memberRole(teamSlug))
 
 	if not role:
 		raise NoTeamFound()
@@ -333,20 +333,20 @@ def getTeamMembers(guild, teamSlug):
 
 async def renameTeam(ctx, teamSlug, newTeamSlug, newTeamName):
 	# Collect all the previous roles/channels
-	memberRole = discord.utils.get(ctx.guild.roles, name=names.memberRole(teamSlug))
+	memberRole = nextcord.utils.get(ctx.guild.roles, name=names.memberRole(teamSlug))
 
 	if not memberRole:
 		raise NoTeamFound()
 
-	# captainRole = discord.utils.get(ctx.guild.roles, name=names.captainRole(teamSlug))
-	cat = discord.utils.get(ctx.guild.channels, name=names.teamChat(teamSlug)).category
+	# captainRole = nextcord.utils.get(ctx.guild.roles, name=names.captainRole(teamSlug))
+	cat = nextcord.utils.get(ctx.guild.channels, name=names.teamChat(teamSlug)).category
 
 
 	# Rename everything
 	await memberRole.edit(name=names.memberRole(newTeamSlug))
 	# await captainRole.edit(name=names.captainRole(newTeamSlug))
 	for ch in [names.teamChat, names.teamVC, names.teamSubmissionsChan, names.teamApproval]:
-		chan = discord.utils.get(ctx.guild.channels, name=ch(teamSlug))
+		chan = nextcord.utils.get(ctx.guild.channels, name=ch(teamSlug))
 
 		try:
 			await chan.edit(name=ch(newTeamSlug))
@@ -359,7 +359,7 @@ async def renameTeam(ctx, teamSlug, newTeamSlug, newTeamName):
 
 
 async def addPlayer(ctx, teamSlug, player):
-	role = discord.utils.get(ctx.guild.roles, name=names.memberRole(teamSlug))
+	role = nextcord.utils.get(ctx.guild.roles, name=names.memberRole(teamSlug))
 
 	if not role:
 		raise NoTeamFound()
@@ -379,7 +379,7 @@ async def removePlayer(ctx, player):
 
 
 async def setCaptain(ctx, teamSlug, player):
-	role = discord.utils.get(ctx.guild.roles, name=names.captainRole(teamSlug))
+	role = nextcord.utils.get(ctx.guild.roles, name=names.captainRole(teamSlug))
 
 	if not role:
 		raise NoTeamFound()
@@ -393,7 +393,7 @@ async def setCaptain(ctx, teamSlug, player):
 
 
 async def setOwner(ctx, user):
-	role = discord.utils.get(ctx.guild.roles, name=names.ownerRole)
+	role = nextcord.utils.get(ctx.guild.roles, name=names.ownerRole)
 
 	await user.add_roles(role)
 

@@ -6,6 +6,8 @@ import logging
 import re 
 import os, json
 from PIL import Image #pip install pillow
+from datetime import datetime
+
 
 import bingobot_admin
 from bingo import bingodata, board, teams, discordbingo, WOM, tiles
@@ -19,8 +21,10 @@ with open("token.txt", 'r') as fp:
 gPREFIX = "!"
 gBOTREADY = False
 
-#bingoServer = 1002860611409039400
-guildID = 1109838269430124636
+#guildID = 1002860611409039400 #cuties
+guildID = 1109838269430124636 #test
+#standingsChannelID = 1111707650388934718 #cuties
+standingsChannelID = 1111742455390412830 #test
 
 # Bot
 intents = nextcord.Intents.default()
@@ -37,6 +41,37 @@ gDISPUTEREACT = '🏴󠁧󠁢󠁳󠁣󠁴󠁿'
 async def intervalTasks(guild):
     #WOM.WOMg.updateGroup()
     await updateAllXPTiles(guild)
+
+    nowHr = datetime.now().strftime('%H')
+    if nowHr == "08" or nowHr == "20":
+        nowMin = datetime.now().strftime('%M')
+        minTillHr = 60 - int(nowMin)
+        secTilHr = 60 * minTillHr
+        await asyncio.sleep(secTilHr)
+        channel = bot.get_channel(standingsChannelID)  
+
+        teamNames = discordbingo.listTeams(guild)
+    
+        await channel.purge()
+
+        for teamName in teamNames:  
+            if teamName == "":
+                return  # Not in a team channel
+            teamName = discordbingo.getTeamDisplayName(guild, teamName)
+            # Load the "board" of tiles
+            brd = board.load(guild)
+
+            # Load the team specific progress
+            tmData = teams.loadTeamBoard(guild, teamName)
+
+            bytes, points = teams.fillProgressBoard(tmData, brd, guild)
+            dBoard = nextcord.File(bytes, filename="boardImg.png")
+
+            embed = nextcord.Embed(title=f"{teamName}'s Board", description=f"{points} points")
+            embed.color = nextcord.Color.blue()
+            embed.set_image(url="attachment://boardImg.png")
+            await channel.send(embed=embed, file=dBoard,)
+
 
 @bot.event
 async def on_ready():
@@ -507,8 +542,11 @@ async def progress(ctx: nextcord.ext.commands.Context, *args):
 
     bytes, points = teams.fillProgressBoard(tmData, brd, ctx.guild)
     dBoard = nextcord.File(bytes, filename="boardImg.png")
-    
-    await ctx.send(f"{teamName}'s' board with {points} points", file=dBoard,)
+
+    embed = nextcord.Embed(title=f"{teamName}'s Board", description=f"{points} points")
+    embed.color = nextcord.Color.blue()
+    embed.set_image(url="attachment://boardImg.png")
+    await ctx.send(embed=embed, file=dBoard,)
 
 @bot.command()
 async def standings(ctx: nextcord.ext.commands.Context, *args):
@@ -518,7 +556,7 @@ async def standings(ctx: nextcord.ext.commands.Context, *args):
     for teamName in teamNames:  
         if teamName == "":
             return # Not in a team channel
-
+        teamName = discordbingo.getTeamDisplayName(ctx.guild, teamName)
         # Load the "board" of tiles
         brd = board.load(ctx.guild)
 
@@ -527,8 +565,11 @@ async def standings(ctx: nextcord.ext.commands.Context, *args):
 
         bytes, points = teams.fillProgressBoard(tmData, brd, ctx.guild)
         dBoard = nextcord.File(bytes, filename="boardImg.png")
-        
-        await ctx.send(f"{teamName}'s' board with {points} points", file=dBoard,)
+
+        embed = nextcord.Embed(title=f"{teamName}'s Board", description=f"{points} points")
+        embed.color = nextcord.Color.blue()
+        embed.set_image(url="attachment://boardImg.png")
+        await ctx.send(embed=embed, file=dBoard,)
 
 @bot.command()
 async def bingostart(ctx: nextcord.ext.commands.Context, *args):
@@ -562,7 +603,6 @@ async def bingo(ctx: nextcord.ext.commands.Context, *args):
         return
 
     await bingobot_admin.command(ctx, args) 
-
 
 
 logging.basicConfig(level=logging.ERROR)
