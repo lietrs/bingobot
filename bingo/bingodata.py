@@ -58,7 +58,7 @@ def getBingoStatus(server):
 
 def setBingoStatus(server, status):
 
-	with open(_teamFile(server), "w") as f:
+	with open(_bingoFile(server), "w") as f:
 		json.dump(status, f)
 
 def isBingoStarted(server):

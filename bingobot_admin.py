@@ -707,8 +707,6 @@ async def bingo_tiles_addprogress(ctx: nextcord.ext.commands.Context, auth, args
 	await ctx.message.add_reaction(goodReaction)
 
 
-
-
 async def bingo_tiles_about(ctx: nextcord.ext.commands.Context, auth, args):
 	""" Gives extra info about a bingo tile
 
@@ -745,84 +743,10 @@ async def bingo_tiles_progress(ctx: nextcord.ext.commands.Context, auth, args):
 	await ctx.send("\n".join(res))
 
 
-async def bingo_tiles_createapprovalpost(ctx: nextcord.ext.commands.Context, auth, args):
-	""" Create dummy approval post
-
-	Usage: !bingo tiles createapprovalpost TEAM TILE
-
-	TEAM - the team name (as at the start of their text channel)
-	TILE - The name of the tile to retrieve progress on"""
-
-	team = args[0]
-	tile = args[1]
-
-	brd = board.load(ctx.guild)
-	tld = brd.getTileByName(tile)
-
-	message = await ctx.send(f"[{team}:{tile}] {tld.name}")
-	# await message.add_reaction('✅')
-	# await message.add_reaction('🏴󠁧󠁢󠁳󠁣󠁴󠁿')
-
-
-
-async def bingo_teams_createapprovechannel(ctx: nextcord.ext.commands.Context, auth, args):
-	""" Create dummy approval post
-
-	Usage: !bingo teams createapprovalpost TEAM
-
-	TEAM - the team name (as at the start of their text channel)"""
-
-	teamSlug = args[0]
-
-	chat = nextcord.utils.get(ctx.guild.channels, name=discordbingo.names.teamChat(teamSlug))
-
-	if not chat:
-		raise NoTeamFound()
-
-	modRole = nextcord.utils.get(ctx.guild.roles, name=discordbingo.names.modRole)
-	adminRole = nextcord.utils.get(ctx.guild.roles, name=discordbingo.names.adminRole)
-	ownerRole = nextcord.utils.get(ctx.guild.roles, name=discordbingo.names.ownerRole)
-
-	cat = chat.category
-	overwrites = {
-		ctx.guild.default_role: nextcord.PermissionOverwrite(read_messages=False),
-		modRole: nextcord.PermissionOverwrite(read_messages=True),
-		adminRole: nextcord.PermissionOverwrite(read_messages=True),
-		ownerRole: nextcord.PermissionOverwrite(read_messages=True)
-	}
-
-	chan = await ctx.guild.create_text_channel(discordbingo.names.teamApproval(teamSlug), category=cat, overwrites=overwrites)
-
-	brd = board.load(ctx.guild)
-
-	# Todo: Should really be nested correctly, this depth limits. 
-	for sl, t in brd.subtiles.items():
-		if isinstance(t, tiles.TileSet):
-			for sl2, t2 in t.subtiles.items():
-				if isinstance(t2, tiles.TileSet):
-					for sl3, t3 in t2.subtiles.items():
-						# await chan.send(f"[{teamSlug}:{sl}.{sl2}.{sl3}] {t3.name}")
-						if isinstance(t3, tiles.XPTile) or isinstance(t3, tiles.CountTile):
-							continue
-						await chan.send(f"{t3.description}")
-				elif isinstance(t2, tiles.XPTile) or isinstance(t2, tiles.CountTile):
-					pass
-				else:
-					# await chan.send(f"[{teamSlug}:{sl}.{sl2}] {t2.name}")
-					await chan.send(f"{t2.description}")
-		elif isinstance(t, tiles.XPTile) or isinstance(t, tiles.CountTile):
-			pass
-		else:
-			# await chan.send(f"[{teamSlug}:{sl}] {t.name}")
-			await chan.send(f"{t.description}")
-
-
 bingo_commands = {
 	"who": bingo_who,
 	"init": (discordbingo.PermLevel.Owner, bingo_init),
 	"cleanup": (discordbingo.PermLevel.Owner, bingo_cleanup),
-	# "init": bingo_init,
-	# "cleanup": bingo_cleanup,
 	"start": (discordbingo.PermLevel.Admin, bingo_start),
 	"end": (discordbingo.PermLevel.Admin, bingo_end),
 	"teams": (discordbingo.PermLevel.Mod, {
@@ -831,8 +755,7 @@ bingo_commands = {
 		"add": (discordbingo.PermLevel.Admin, bingo_teams_add),
 		"remove": (discordbingo.PermLevel.Admin, bingo_teams_remove),
 		"rename": (discordbingo.PermLevel.Admin, bingo_teams_rename),
-		"progress": bingo_teams_progress,
-		"createapprovechannel": bingo_teams_createapprovechannel
+		"progress": bingo_teams_progress
 	}),
 	"players": (discordbingo.PermLevel.Mod, {
 		"": bingo_players,
@@ -863,8 +786,7 @@ bingo_commands = {
 		"setprogress": bingo_tiles_setprogress,
 		"addprogress": bingo_tiles_addprogress,
 		"remove": (discordbingo.PermLevel.Admin, bingo_tiles_remove),
-		"progress": bingo_tiles_progress,
-		"createapprovalpost": bingo_tiles_createapprovalpost
+		"progress": bingo_tiles_progress
 	}),
 	"board": bingo_teams_board,
 	"approve": bingo_tiles_approve,

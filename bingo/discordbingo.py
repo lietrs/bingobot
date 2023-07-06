@@ -63,7 +63,13 @@ class NoTeamFound(Exception):
 	pass
 
 
+def isTeamChannel(ctx):
+    spl = ctx.channel.name.split("-")
+    team = "-".join(spl[0:-1])
 
+    if discordbingo.isTeamName(ctx.guild, team):
+        return team
+    return ""
 
 def userGetPermLevels(user):
 	ret = {}
@@ -88,6 +94,21 @@ def userGetPermLevels(user):
 		ret[PermLevel.Owner] = ""
 
 	return ret
+
+def userIsMod(user):
+    perms = userGetPermLevels(user)
+
+    if not PermLevel.Admin in perms and not PermLevel.Owner in perms and not PermLevel.Mod in perms:
+        return False
+
+    return True
+
+
+def userGetTeam(user):
+    perms = userGetPermLevels(user)
+    if PermLevel.Player in perms:
+    	return perms[PermLevel.Player]
+    return None
 
 
 def ctxGetPermLevels(ctx):
