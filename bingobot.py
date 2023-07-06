@@ -1,11 +1,13 @@
 
-import discord
-from discord.ext import commands, tasks
+import nextcord
+from nextcord.ext import commands, tasks
 import asyncio
 import logging
 import re 
 import os, json
 from PIL import Image #pip install pillow
+from datetime import datetime
+
 
 import bingobot_admin
 from bingo import bingodata, board, teams, discordbingo, WOM, tiles
@@ -17,10 +19,14 @@ with open("token.txt", 'r') as fp:
     gTOKEN = fp.readline()
 
 gPREFIX = "!"
+gBOTREADY = False
+
+guildID = 1002860611409039400 #cuties
+standingsChannelID = 1111707650388934718 #cuties
 
 
 # Bot
-intents = discord.Intents.default()
+intents = nextcord.Intents.default()
 intents.message_content = True
 intents.members = True
 
@@ -30,13 +36,55 @@ bot = commands.Bot(intents=intents, command_prefix=gPREFIX, description='Bingo t
 gAPPROVEREACT = '✅'
 gDISPUTEREACT = '🏴󠁧󠁢󠁳󠁣󠁴󠁿'
 
+@tasks.loop(seconds=3600)
+async def intervalTasks(guild):
+    WOM.WOMg.updateGroup()
+    await updateAllXPTiles(guild)
+
+    nowHr = datetime.now().strftime('%H')
+    if nowHr == "08" or nowHr == "20":
+        nowMin = datetime.now().strftime('%M')
+        minTillHr = 60 - int(nowMin)
+        secTilHr = 60 * minTillHr
+        await asyncio.sleep(secTilHr)
+        channel = bot.get_channel(standingsChannelID)  
+
+        teamNames = discordbingo.listTeams(guild)
+    
+        await channel.purge()
+
+        for teamName in teamNames:  
+            if teamName == "":
+                return  # Not in a team channel
+            teamName = discordbingo.getTeamDisplayName(guild, teamName)
+            # Load the "board" of tiles
+            brd = board.load(guild)
+
+            # Load the team specific progress
+            tmData = teams.loadTeamBoard(guild, teamName)
+
+            bytes, points = teams.fillProgressBoard(tmData, brd, guild)
+            dBoard = nextcord.File(bytes, filename="boardImg.png")
+
+            embed = nextcord.Embed(title=f"{teamName}'s Board", description=f"{points} points")
+            embed.color = nextcord.Color.blue()
+            embed.set_image(url="attachment://boardImg.png")
+            await channel.send(embed=embed, file=dBoard,)
+
 
 @bot.event
 async def on_ready():
-    print('Logged in as')
-    print(bot.user.name)
-    print(bot.user.id)
-    print('------')
+    global gBOTREADY
+    if not gBOTREADY:
+        gBOTREADY = True
+        print('Logged in as')
+        print(bot.user.name)
+        print(bot.user.id)
+        print('------')
+        server = bot.get_guild(guildID)
+        if not intervalTasks.is_running():
+            intervalTasks.start(server)
+    
 
 def isTeamChannel(ctx):
     spl = ctx.channel.name.split("-")
@@ -48,7 +96,7 @@ def isTeamChannel(ctx):
 
 
 @bot.command()
-async def mvp(ctx: discord.ext.commands.Context, *args):
+async def mvp(ctx: nextcord.ext.commands.Context, *args):
     teamNameSlug = isTeamChannel(ctx)
     teamName = discordbingo.getTeamDisplayName(ctx.guild, teamNameSlug)
     if teamName == "":
@@ -75,7 +123,7 @@ async def mvp(ctx: discord.ext.commands.Context, *args):
 
 
 @bot.command()
-async def xp(ctx: discord.ext.commands.Context, *args):
+async def xp(ctx: nextcord.ext.commands.Context, *args):
     teamNameSlug = isTeamChannel(ctx)
     teamName = discordbingo.getTeamDisplayName(ctx.guild, teamNameSlug)
     if teamName == "":
@@ -254,11 +302,9 @@ async def updateAllXPTiles(server):
         xpTile = brd.getTileByName(tnm)
         skill = xpTile.skill
         WOM.WOMc.updateData(skill)
-
         for team in discordbingo.listTeams(server):
             teamName = discordbingo.getTeamDisplayName(server, team)
             tmpData = WOM.WOMc.getTeamData(skill, teamName)
-
             if not tmpData:
                 print(f"Missing data for {team} in {skill}, ignoring")
                 continue
@@ -275,19 +321,16 @@ async def updateAllXPTiles(server):
             print(f"{team} has {totalXP} xp gained in {skill}")
         print("^^^^^^^^^^^^^^^^^^^^")
 
-@tasks.loop(seconds=3600)
-async def intervalTasks(guild):
-    WOM.WOMg.updateGroup()
-    await updateAllXPTiles(guild)
-    
+
 @bot.command()
-async def startWOM(ctx: discord.ext.commands.Context):
+async def startWOM(ctx: nextcord.ext.commands.Context):
     if not discordbingo.ctxIsAdmin(ctx):
         return
     intervalTasks.start(ctx.guild)
 
+
 @bot.command()
-async def updateWOM(ctx: discord.ext.commands.Context):
+async def updateWOM(ctx: nextcord.ext.commands.Context):
     if not discordbingo.ctxIsAdmin(ctx):
         return
 
@@ -321,7 +364,7 @@ async def addAmount(taskView, interaction, task_key):
     await message.delete()
 
 
-class TaskView(discord.ui.View):
+class TaskView(nextcord.ui.View):
     def __init__(self, guild, teamName, count_tasks):
         super().__init__(timeout=None)
         self.count_tasks = count_tasks
@@ -351,8 +394,8 @@ class TaskView(discord.ui.View):
         self.subsection_button_disabled = not isinstance(self.count_tasks[self.task_index], list)
 
 
-    @discord.ui.button(label="Next Section")
-    async def next_task(self, button: discord.ui.Button, interaction: discord.Interaction):
+    @nextcord.ui.button(label="Next Section")
+    async def next_task(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         self.task_index = (self.task_index + 1) % len(self.count_tasks)
         self.subsection_index = 0  # Reset the subsection index when switching tasks
 
@@ -361,15 +404,15 @@ class TaskView(discord.ui.View):
         await interaction.response.edit_message(content=None, embed=embed, view=self)
 
 
-    @discord.ui.button(label="Next Subsection", disabled=True)  # Initially disable the button
-    async def next_subsection(self, button: discord.ui.Button, interaction: discord.Interaction):
+    @nextcord.ui.button(label="Next Subsection", disabled=True)  # Initially disable the button
+    async def next_subsection(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
 
         self.subsection_index = (self.subsection_index + 1) % len(self.count_tasks[self.task_index])
         embed = self.create_embed()
         await interaction.response.edit_message(content=None, embed=embed, view=self)
 
-    @discord.ui.button(label="Add Amount")
-    async def add_amount(self, button: discord.ui.Button, interaction: discord.Interaction):
+    @nextcord.ui.button(label="Add Amount")
+    async def add_amount(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         
         task_key = self.taskKey()
 
@@ -389,14 +432,14 @@ class TaskView(discord.ui.View):
             section_key = task_key.split(".")[0]
             section_task = brd.getTileByName(section_key)
 
-            embed = discord.Embed(title="Count Task", description=section_task.name, color=discord.Color.green())
+            embed = nextcord.Embed(title="Count Task", description=section_task.name, color=nextcord.Color.green())
             embed.add_field(name="Description", value=section_task.description, inline=False)
 
             subcounter_description = f"**Subcounter:**\n{task.name}:\n"
             embed.add_field(name="\u200b", value=subcounter_description, inline=False)
             self.next_subsection.disabled = False
         else:
-            embed = discord.Embed(title="Count Task", description=task.name, color=discord.Color.green())
+            embed = nextcord.Embed(title="Count Task", description=task.name, color=nextcord.Color.green())
             embed.add_field(name="Description", value=task.description, inline=False)
             self.next_subsection.disabled = True
 
@@ -409,7 +452,7 @@ class TaskView(discord.ui.View):
 
 async def sendCountTileSetup(server, team, approveChan = None):
     if not approveChan:
-        approveChan = discord.utils.get(server.channels, name=discordbingo.names.teamApproval(team))
+        approveChan = nextcord.utils.get(server.channels, name=discordbingo.names.teamApproval(team))
 
         if not approveChan: 
             return False
@@ -471,8 +514,10 @@ async def renameteam(ctx, oldTeam, newTeam):
 @bot.command()
 async def aaa(ctx):
     """ testing """
+    guild = ctx.guild
     if str(ctx.author.id) == "631886189493747723":
         # Very important do not delete
+        guild = ctx.guild
         await ctx.send("aaaaaaaaaaaaaaa")
     else:
         await ctx.send("aaa")
@@ -482,7 +527,7 @@ async def aaa(ctx):
 
 
 @bot.command()
-async def progress(ctx: discord.ext.commands.Context, *args):
+async def progress(ctx: nextcord.ext.commands.Context, *args):
     print("--------------")
     teamName = isTeamChannel(ctx)
     if teamName == "":
@@ -495,13 +540,38 @@ async def progress(ctx: discord.ext.commands.Context, *args):
     tmData = teams.loadTeamBoard(ctx.guild, teamName)
 
     bytes, points = teams.fillProgressBoard(tmData, brd, ctx.guild)
-    dBoard = discord.File(bytes, filename="boardImg.png")
-    
-    await ctx.send(f"{teamName}'s' board with {points} points", file=dBoard,)
+    dBoard = nextcord.File(bytes, filename="boardImg.png")
 
+    embed = nextcord.Embed(title=f"{teamName}'s Board", description=f"{points} points")
+    embed.color = nextcord.Color.blue()
+    embed.set_image(url="attachment://boardImg.png")
+    await ctx.send(embed=embed, file=dBoard,)
 
 @bot.command()
-async def bingostart(ctx: discord.ext.commands.Context, *args):
+async def standings(ctx: nextcord.ext.commands.Context, *args):
+    print("--------------")
+    teamNames = discordbingo.listTeams(ctx.guild)
+    
+    for teamName in teamNames:  
+        if teamName == "":
+            return # Not in a team channel
+        teamName = discordbingo.getTeamDisplayName(ctx.guild, teamName)
+        # Load the "board" of tiles
+        brd = board.load(ctx.guild)
+
+        # Load the team specific progress
+        tmData = teams.loadTeamBoard(ctx.guild, teamName)
+
+        bytes, points = teams.fillProgressBoard(tmData, brd, ctx.guild)
+        dBoard = nextcord.File(bytes, filename="boardImg.png")
+
+        embed = nextcord.Embed(title=f"{teamName}'s Board", description=f"{points} points")
+        embed.color = nextcord.Color.blue()
+        embed.set_image(url="attachment://boardImg.png")
+        await ctx.send(embed=embed, file=dBoard,)
+
+@bot.command()
+async def bingostart(ctx: nextcord.ext.commands.Context, *args):
     auth = discordbingo.ctxGetPermLevels(ctx)
 
     if not discordbingo.PermLevel.Owner in auth:
@@ -513,7 +583,7 @@ async def bingostart(ctx: discord.ext.commands.Context, *args):
 
 
 @bot.command()
-async def bingobuttons(ctx: discord.ext.commands.Context, *args):
+async def bingobuttons(ctx: nextcord.ext.commands.Context, *args):
     auth = discordbingo.ctxGetPermLevels(ctx)
 
     if not discordbingo.PermLevel.Owner in auth:
@@ -525,14 +595,13 @@ async def bingobuttons(ctx: discord.ext.commands.Context, *args):
 
 
 @bot.command()
-async def bingo(ctx: discord.ext.commands.Context, *args):
+async def bingo(ctx: nextcord.ext.commands.Context, *args):
     """ Administer the Bingo """
 
     if not discordbingo.ctxIsAdmin(ctx):
         return
 
     await bingobot_admin.command(ctx, args) 
-
 
 
 logging.basicConfig(level=logging.ERROR)
