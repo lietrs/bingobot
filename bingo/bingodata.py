@@ -42,6 +42,7 @@ def _bingoFile(server):
 
 def initServer(server):
 	os.makedirs(_teamDir(server), exist_ok=True)
+	os.makedirs(_imgDir(server), exist_ok=True)
 
 
 

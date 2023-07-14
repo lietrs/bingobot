@@ -88,52 +88,71 @@ def _approveTile(brd, tmData, tileName, mod = "BingoBot"):
 def _unapproveTile(brd, tmData, tileName, mod = "BingoBot"):
 
 	if tmData.unapprove(tileName, mod):
-		_onTileStatusChange(brd, tmData, tileName)
+		return [tileName] + _onTileStatusChange(brd, tmData, tileName)
+
+	return []
 
 def _disputeTile(brd, tmData, tileName, mod = "BingoBot"):
 
 	if tmData.dispute(tileName, mod):
-		_onTileStatusChange(brd, tmData, tileName)
+		return [tileName] + _onTileStatusChange(brd, tmData, tileName)
+	return []
 
 def _resolveTile(brd, tmData, tileName, mod = "BingoBot"):
 
 	if tmData.resolveDispute(tileName, mod):
-		_onTileStatusChange(brd, tmData, tileName)
+		return [tileName] + _onTileStatusChange(brd, tmData, tileName)
+	return []
 
 
-def approveTile(server, team, tileName, mod = "BingoBot"):
+def approveTile(server, team, tileName, mod = "BingoBot", evidence = None):
 	brd = board.load(server)
 	tmData = loadTeamBoard(server, team)
 
 	ret = _approveTile(brd, tmData, tileName, mod)
 
+	if evidence: 
+		tmData.addLink(evidence, tileName)
+
 	saveTeamBoard(server, team, tmData)
 
 	return ret
 
-def unapproveTile(server, team, tileName, mod = "BingoBot"):
+def unapproveTile(server, team, tileName, mod = "BingoBot", evidence = None):
 	brd = board.load(server)
 	tmData = loadTeamBoard(server, team)
 
-	_unapproveTile(brd, tmData, tileName, mod)
+	ret = _unapproveTile(brd, tmData, tileName, mod)
+
+	if evidence is not None and tileName in ret:
+		tmData.removeLink(evidence)
 
 	saveTeamBoard(server, team, tmData)
 
-def disputeTile(server, team, tileName, mod = "BingoBot"):
+	return ret
+
+def disputeTile(server, team, tileName, mod = "BingoBot", evidence = None):
 	brd = board.load(server)
 	tmData = loadTeamBoard(server, team)
 
-	_disputeTile(brd, tmData, tileName, mod)
+	ret = _disputeTile(brd, tmData, tileName, mod)
+
+	if evidence: 
+		tmData.addLink(evidence, tileName)
 
 	saveTeamBoard(server, team, tmData)
+
+	return ret
 
 def resolveTile(server, team, tileName, mod = "BingoBot"):
 	brd = board.load(server)
 	tmData = loadTeamBoard(server, team)
 
-	_resolveTile(brd, tmData, tileName, mod)
+	ret = _resolveTile(brd, tmData, tileName, mod)
 
 	saveTeamBoard(server, team, tmData)
+
+	return ret
 
 
 def _setProgress(brd, tmData, tileName, progress):
@@ -181,11 +200,14 @@ def setProgress(server, team, tileName, progress):
 	saveTeamBoard(server, team, tmData)
 
 
-def addProgress(server, team, tileName, progress):
+def addProgress(server, team, tileName, progress, evidence = None):
 	tmData = loadTeamBoard(server, team)
 	brd = board.load(server)
 
 	_addProgress(brd, tmData, tileName, progress)
+	
+	if evidence: 
+		tmData.addLink(evidence, tileName)
 
 	saveTeamBoard(server, team, tmData)
 

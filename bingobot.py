@@ -129,29 +129,147 @@ async def onBingoTaskApproved(bot, payload):
         return
 
     if discordbingo.userGetTeam(user) == team:
-        # Todo: Log - Mod attempting to approve entry for own team
+        # Todo: Log - Mod attempting to approve their own team
         return
 
     message = await channel.fetch_message(payload.message_id)
     
-    tile, approved, count = await approve_interaction.prompt(guild, message)
+    tmData = teams.loadTeamBoard(guild, team)
+    tile = tmData.lookupLink(str(message.id))
+    approve = False
+    count = 0
 
-    print(f"tile {tile}, approved: {approved}, count={count}")
+    if tile is None:
+        tile, approved, count = await approve_interaction.prompt(guild, message, "Approving Submission")
+    else:
+        approved, count = await approve_interaction.promptKnownTile(guild, message, "Approving Submission")
+
+    if not approved:
+        # Cancelled
+        return
+
+    if count:
+        await discordbingo.addProgress(guild, team, tile, count, str(user), message)
+    else:
+        await discordbingo.approveTile(guild, team, tile, str(user), message)
+
+
+async def onBingoTaskUnapproved(bot, payload):
+    channel = await bot.fetch_channel(payload.channel_id)
+
+    spl = channel.name.split("-")
+    team = "-".join(spl[0:-1])
+    if spl[-1] != "submissions":
+        return
+
+    guild = bot.get_guild(payload.guild_id)
+    user = guild.get_member(payload.user_id)
+
+    if not discordbingo.userIsMod(user):
+        # Todo: Log - Non mod attempting to approve
+        return
+
+    if discordbingo.userGetTeam(user) == team:
+        # Todo: Log - Mod attempting to approve their own team
+        return
+
+    message = await channel.fetch_message(payload.message_id)
+
+    tmData = teams.loadTeamBoard(guild, team)
+    tile = tmData.lookupLink(str(message.id))
+
+    if tile is None:
+        # Wasn't previously approved? 
+        return
+
+    brd = board.load(guild)
+    td = brd.getTileByName(tile)
+
+    if isinstance(td, tiles.CountTile):
+        # Currently no way to link the amount of progress to a particular submission
+        # Mods will need to reapprove and enter a negative amount
+        pass
+    else:
+        await discordbingo.unapproveTile(guild, team, tile, str(user), message)
+
+
+
+async def onBingoTaskDisputed(bot, payload):
+    channel = await bot.fetch_channel(payload.channel_id)
+
+    spl = channel.name.split("-")
+    team = "-".join(spl[0:-1])
+    if spl[-1] != "submissions":
+        return
+
+    guild = bot.get_guild(payload.guild_id)
+    user = guild.get_member(payload.user_id)
+
+    if not discordbingo.userIsMod(user):
+        # Todo: Log - Non mod attempting to approve
+        return
+
+    message = await channel.fetch_message(payload.message_id)
+    
+    tmData = teams.loadTeamBoard(guild, team)
+    tile = tmData.lookupLink(str(message.id))
+
+    if tile is None:
+        # Wasn't previously approved? 
+        return
+
+    brd = board.load(guild)
+    td = brd.getTileByName(tile)
+
+    if isinstance(td, tiles.CountTile):
+        # Currently no way to link the amount of progress to a particular submission
+        # For now dispute the entire tile
+        await discordbingo.disputeTile(guild, team, tile, str(user), message)
+    else:
+        await discordbingo.disputeTile(guild, team, tile, str(user), message)
+
+
+async def onBingoTaskResolved(bot, payload):
+    channel = await bot.fetch_channel(payload.channel_id)
+
+    spl = channel.name.split("-")
+    team = "-".join(spl[0:-1])
+    if spl[-1] != "submissions":
+        return
+
+    guild = bot.get_guild(payload.guild_id)
+    user = guild.get_member(payload.user_id)
+
+    if not discordbingo.userIsMod(user):
+        # Todo: Log - Non mod attempting to approve
+        return
+
+    message = await channel.fetch_message(payload.message_id)
+    
+    tmData = teams.loadTeamBoard(guild, team)
+    tile = tmData.lookupLink(str(message.id))
+
+    if tile is None:
+        # Wasn't previously approved? 
+        return
+
+    await discordbingo.resolveTile(guild, team, tile, str(user), message)
+
 
 
 @bot.event
 async def on_raw_reaction_add(payload):
     if str(payload.emoji) == gAPPROVEREACT:
         await onBingoTaskApproved(bot, payload)
-    # elif str(payload.emoji) == gDISPUTEREACT:
-    #     await isBingoTaskDisputed(bot, payload)
+    elif str(payload.emoji) == gDISPUTEREACT:
+        await onBingoTaskDisputed(bot, payload)
 
-# @bot.event
-# async def on_raw_reaction_remove(payload):
-#     if str(payload.emoji) == gAPPROVEREACT:
-#         await isBingoTaskUnapproved(bot, payload)
-#     elif str(payload.emoji) == gDISPUTEREACT:
-#         await isBingoTaskResolved(bot, payload)
+@bot.event
+async def on_raw_reaction_remove(payload):
+    if str(payload.emoji) == gAPPROVEREACT:
+        await onBingoTaskUnapproved(bot, payload)
+    elif str(payload.emoji) == gDISPUTEREACT:
+        await onBingoTaskResolved(bot, payload)
 
 
 

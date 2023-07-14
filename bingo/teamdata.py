@@ -96,19 +96,23 @@ class TileStatus:
 
 
 class BoardStatus:
-	tiles = {}
 
 	def __init__(self, d = None):
 		self.tiles = {}
+		self.links = {}
 		if d:
-			for sl, tl in d.items():
+			for sl, tl in d["tiles"].items():
 				self.tiles[sl] = TileStatus(tl)
 
+			if "links" in d:
+				self.links = d["links"]
+
 	def toDict(self):
-		ret = {}
+		tls = {}
 		for sl, tl in self.tiles.items():
-			ret[sl] = tl.toDict()
-		return ret
+			tls[sl] = tl.toDict()
+
+		return {"tiles": tls, "links": self.links}
 
 	def getTile(self, tileName):
 		tns = tileName.split(".")
@@ -130,6 +134,17 @@ class BoardStatus:
 		else:
 			self.tiles[tns[0]] = d
 
+	def lookupLink(self, link):
+		if link in self.links:
+			return self.links[link]
+
+		return None
+
+	def addLink(self, link, tile):
+		self.links[link] = tile
+
+	def removeLink(self, link):
+		del self.links[link]
 
 	def applyStatusChange(self, function, tileName, mod):
 		t = self.getTile(tileName)
@@ -141,21 +156,39 @@ class BoardStatus:
 		return beforeStatus != t.status()
 
 
-	def approve(self, tileName, mod = "BingoBot"):
+	def approve(self, tileName, mod = "BingoBot", evidence = None):
+		if evidence and not evidence in self.links:
+			self.links[evidence] = tileName
+
 		return self.applyStatusChange(TileStatus.approve, tileName, mod)
 
-	def unapprove(self, tileName, mod = "BingoBot"):
+	def unapprove(self, tileName, mod = "BingoBot", evidence = None):
+		if evidence and not evidence in self.links:
+			self.links[evidence] = tileName
+			
 		return self.applyStatusChange(TileStatus.unapprove, tileName, mod)
 
-	def unapprove_all(self, tileName, mod = "BingoBot"):
+	def unapprove_all(self, tileName, mod = "BingoBot", evidence = None):
+		if evidence and not evidence in self.links:
+			self.links[evidence] = tileName
+			
 		return self.applyStatusChange(TileStatus.unapprove_all, tileName, mod)
 
-	def dispute(self, tileName, mod = "BingoBot"):
+	def dispute(self, tileName, mod = "BingoBot", evidence = None):
+		if evidence and not evidence in self.links:
+			self.links[evidence] = tileName
+			
 		return self.applyStatusChange(TileStatus.dispute, tileName, mod)
 
-	def resolveDispute(self, tileName, mod = "BingoBot"):
+	def resolveDispute(self, tileName, mod = "BingoBot", evidence = None):
+		if evidence and not evidence in self.links:
+			self.links[evidence] = tileName
+			
 		return self.applyStatusChange(TileStatus.resolveDispute, tileName, mod)
 
-	def resolveDispute(self, tileName, mod = "BingoBot"):
+	def resolveDispute_all(self, tileName, mod = "BingoBot", evidence = None):
+		if evidence and not evidence in self.links:
+			self.links[evidence] = tileName
+			
 		return self.applyStatusChange(TileStatus.resolveDispute_all, tileName, mod)
 

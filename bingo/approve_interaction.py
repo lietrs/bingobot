@@ -39,13 +39,12 @@ class TileSelect(nextcord.ui.Select):
     async def callback(self, interaction: nextcord.Interaction):
         await self.view.tileSelected(self.values[0])
 
+
 class TileSelectView(nextcord.ui.View):
     def __init__(self, tileSet):
         super().__init__()
 
-        # Adds the dropdown to our view object.
         self.add_item(TileSelect(tileSet))
-
         self.tile = None
 
     async def tileSelected(self, value):
@@ -153,13 +152,36 @@ async def promptTile(guild, message, repl, tileSet, prefix = ""):
 
     return (prefix + tileSlug, approved, count)
 
+async def promptKnownTile(guild, message, text):
+    brd = board.load(guild)
+    tld = brd.getTileByName(tileSlug)
 
-async def prompt(guild, message):
+    # Placeholder reply, edited by the various views
+    repl = await message.reply(text, view=None)
+    
+    count = 0
+    approved = False
+
+    if isinstance(tld, tiles.CountTile):
+        count = await countApproval(message, repl, tld)
+        if count:
+            approved = True
+    else:
+        approved = await basicApproval(message, repl, tld)
+
+    return (approved, count)
+
+
+async def prompt(guild, message, text):
 
     brd = board.load(guild)
 
     # Placeholder reply, edited by the various views
-    repl = await message.reply("Approving Submission", view=None)
+    repl = await message.reply(text, view=None)
+
+    tile = None
+    approved = False
+    count = 0
 
     try:
         tile, approved, count = await promptTile(guild, message, repl, brd)
