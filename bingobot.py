@@ -43,14 +43,93 @@ async def on_ready():
         print(bot.user.name)
         print(bot.user.id)
         print('------')
+        # server = bot.get_guild(guildID)
+        # if not intervalTasks.is_running():
+        #     intervalTasks.start(server)
     
 
+@tasks.loop(seconds=3600)
+async def intervalTasks(guild):
+    WOM.WOMg.updateGroup()
+    await updateAllXPTiles(guild)
 
+    nowHr = datetime.now().strftime('%H')
+    if nowHr == "08" or nowHr == "20":
+        nowMin = datetime.now().strftime('%M')
+        minTillHr = 60 - int(nowMin)
+        secTilHr = 60 * minTillHr
+        await asyncio.sleep(secTilHr)
+        channel = bot.get_channel(standingsChannelID)  
+
+        teamNames = discordbingo.listTeams(guild)
+    
+        await channel.purge()
+
+        for teamName in teamNames:  
+            if teamName == "":
+                return  # Not in a team channel
+            teamName = discordbingo.getTeamDisplayName(guild, teamName)
+            # Load the "board" of tiles
+            brd = board.load(guild)
+
+            # Load the team specific progress
+            tmData = teams.loadTeamBoard(guild, teamName)
+
+            bytes, points = teams.fillProgressBoard(tmData, brd, guild)
+            dBoard = nextcord.File(bytes, filename="boardImg.png")
+
+            embed = nextcord.Embed(title=f"{teamName}'s Board", description=f"{points} points")
+            embed.color = nextcord.Color.blue()
+            embed.set_image(url="attachment://boardImg.png")
+            await channel.send(embed=embed, file=dBoard,)
+
+
+async def updateAllXPTiles(server):
+    brd = board.load(server)
+    xpTiles = brd.getXpTiles()
+    for tnm in xpTiles:
+        xpTile = brd.getTileByName(tnm)
+        skill = xpTile.skill
+        WOM.WOMc.updateData(skill)
+        for team in discordbingo.listTeams(server):
+            teamName = discordbingo.getTeamDisplayName(server, team)
+            tmpData = WOM.WOMc.getTeamData(skill, teamName)
+            if not tmpData:
+                print(f"Missing data for {team} in {skill}, ignoring")
+                continue
+
+            totalXP = tmpData.getTotalXP()
+
+            tmData = teams.loadTeamBoard(server, team)
+            newApproved = teams._setProgress(brd, tmData, tnm, totalXP)
+            teams.saveTeamBoard(server, team, tmData)
+
+            if newApproved:
+                await discordbingo.sendToTeam(server, team, f"Congratulations {teamName} on completing the {skill} tile!")
+
+            print(f"{team} has {totalXP} xp gained in {skill}")
+        print("^^^^^^^^^^^^^^^^^^^^")
+
+
+@bot.command()
+async def startWOM(ctx: nextcord.ext.commands.Context):
+    if not discordbingo.ctxIsAdmin(ctx):
+        return
+    intervalTasks.start(ctx.guild)
+
+
+@bot.command()
+async def updateWOM(ctx: nextcord.ext.commands.Context):
+    if not discordbingo.ctxIsAdmin(ctx):
+        return
+
+    WOM.WOMg.updateGroup()
+    await updateAllXPTiles(ctx.guild)
 
 
 @bot.command()
 async def mvp(ctx: nextcord.ext.commands.Context, *args):
-    teamNameSlug = isTeamChannel(ctx)
+    teamNameSlug = discordbingo.isTeamChannel(ctx)
     teamName = discordbingo.getTeamDisplayName(ctx.guild, teamNameSlug)
     if teamName == "":
         return # Not in a team channel
@@ -77,7 +156,7 @@ async def mvp(ctx: nextcord.ext.commands.Context, *args):
 
 @bot.command()
 async def xp(ctx: nextcord.ext.commands.Context, *args):
-    teamNameSlug = isTeamChannel(ctx)
+    teamNameSlug = discordbingo.isTeamChannel(ctx)
     teamName = discordbingo.getTeamDisplayName(ctx.guild, teamNameSlug)
     if teamName == "":
         return # Not in a team channel
@@ -142,7 +221,7 @@ async def onBingoTaskApproved(bot, payload):
     if tile is None:
         tile, approved, count = await approve_interaction.prompt(guild, message, "Approving Submission")
     else:
-        approved, count = await approve_interaction.promptKnownTile(guild, message, "Approving Submission")
+        approved, count = await approve_interaction.promptKnownTile(guild, tile, message, "Approving Submission")
 
     if not approved:
         # Cancelled
@@ -306,7 +385,7 @@ async def aaa(ctx):
 
 @bot.command()
 async def progress(ctx: nextcord.ext.commands.Context, *args):
-    teamName = isTeamChannel(ctx)
+    teamName = discordbingo.isTeamChannel(ctx)
     if teamName == "":
         return # Not in a team channel
 
@@ -355,9 +434,7 @@ async def bingostart(ctx: nextcord.ext.commands.Context, *args):
     if not discordbingo.PermLevel.Owner in auth:
         return
 
-    for team in discordbingo.listTeams(ctx.guild):
-        await bingobot_admin.bingo_teams_createapprovechannel(ctx, auth, [team])
-        await sendCountTileSetup(ctx.guild, team)
+    # Any actions on start
 
 
 @bot.command()

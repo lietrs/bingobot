@@ -152,7 +152,7 @@ async def promptTile(guild, message, repl, tileSet, prefix = ""):
 
     return (prefix + tileSlug, approved, count)
 
-async def promptKnownTile(guild, message, text):
+async def promptKnownTile(guild, tileSlug, message, text):
     brd = board.load(guild)
     tld = brd.getTileByName(tileSlug)
 
@@ -169,6 +169,8 @@ async def promptKnownTile(guild, message, text):
     else:
         approved = await basicApproval(message, repl, tld)
 
+    await repl.delete()
+    
     return (approved, count)
 
 

@@ -440,11 +440,11 @@ async def addProgress(guild, teamSlug, tile, count, user, evidence = None):
     if evidence is not None:
         evidence = str(evidence.id)
 
-    teams.addProgress(guild, teamSlug, tile, str(count), evidence) # Todo: Evidence
+    tilesApproved = teams.addProgress(guild, teamSlug, tile, str(count), evidence) # Todo: Evidence
 
     await auditLogGuild(guild, user, f"Tile {tile} for team {teamSlug} had {count} progress added")
     for tn in tilesApproved:
-        await auditLogGuild(guild, user, f"Tile {tile} for team {team} was completed.")
+        await auditLogGuild(guild, user, f"Tile {tile} for team {teamSlug} was completed.")
 
 
 async def unapproveTile(guild, teamSlug, tile, user, evidence = None):

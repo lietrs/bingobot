@@ -162,8 +162,6 @@ def _setProgress(brd, tmData, tileName, progress):
 	t.progress = progress
 	tmData.setTile(tileName, t)
 
-	print(f"Trace: {tileName} {progress} {tld.isComplete(t)}")
-
 	if tld.isComplete(t): 
 		if t.status != ApproveStatus.Approved:
 			_approveTile(brd, tmData, tileName, "BingoBot")
@@ -182,13 +180,16 @@ def _addProgress(brd, tmData, tileName, progress):
 	t.progress = tld.mergeProgress(t.progress, progress)
 	tmData.setTile(tileName, t)
 
+	ret = []
+
 	if tld.isComplete(t): 
 		if t.status() != ApproveStatus.Approved:
-			_approveTile(brd, tmData, tileName, "BingoBot")
+			ret = _approveTile(brd, tmData, tileName, "BingoBot")
 	else:
 		if t.status() == ApproveStatus.Approved:
-			_unapproveTile(brd, tmData, tileName, "BingoBot")
+			ret = _unapproveTile(brd, tmData, tileName, "BingoBot")
 
+	return ret
 
 
 def setProgress(server, team, tileName, progress):
@@ -204,12 +205,14 @@ def addProgress(server, team, tileName, progress, evidence = None):
 	tmData = loadTeamBoard(server, team)
 	brd = board.load(server)
 
-	_addProgress(brd, tmData, tileName, progress)
+	ret = _addProgress(brd, tmData, tileName, progress)
 	
 	if evidence: 
 		tmData.addLink(evidence, tileName)
 
 	saveTeamBoard(server, team, tmData)
+
+	return ret
 
 
 
